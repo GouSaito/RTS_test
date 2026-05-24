@@ -8,24 +8,69 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var minerals = 40
-    @State private var baseHealth = 100
-    @State private var enemyBaseHealth = 120
-    @State private var units: [RTSUnit] = [
-        RTSUnit(kind: .worker, position: CGPoint(x: 96, y: 190)),
-        RTSUnit(kind: .worker, position: CGPoint(x: 136, y: 220)),
-        RTSUnit(kind: .soldier, position: CGPoint(x: 118, y: 280))
-    ]
-    @State private var enemyUnits: [RTSUnit] = [
-        RTSUnit(kind: .soldier, position: CGPoint(x: 300, y: 370), target: CGPoint(x: 72, y: 72))
-    ]
+    @State private var stageIndex = 0
+    @State private var minerals = ContentView.stages[0].initialMinerals
+    @State private var baseHealth = ContentView.stages[0].playerBaseHealth
+    @State private var enemyBaseHealth = ContentView.stages[0].enemyBaseHealth
+    @State private var units: [RTSUnit] = ContentView.makePlayerUnits()
+    @State private var enemyUnits: [RTSUnit] = ContentView.stages[0].makeEnemyUnits(
+        target: ContentView.playerBasePosition,
+        enemyBasePosition: ContentView.enemyBasePosition
+    )
     @State private var selectedUnitIDs: Set<RTSUnit.ID> = []
     @State private var enemySpawnTicks = 0
     @State private var gameStatus: GameStatus = .playing
 
-    private let playerBasePosition = CGPoint(x: 72, y: 72)
-    private let mineralPosition = CGPoint(x: 278, y: 130)
-    private let enemyBasePosition = CGPoint(x: 314, y: 410)
+    private static let playerBasePosition = CGPoint(x: 72, y: 72)
+    private static let mineralPosition = CGPoint(x: 278, y: 130)
+    private static let enemyBasePosition = CGPoint(x: 314, y: 410)
+
+    private static let stages: [StageDefinition] = [
+        StageDefinition(
+            title: "Stage 1",
+            initialMinerals: 40,
+            playerBaseHealth: 100,
+            enemyBaseHealth: 120,
+            initialEnemyCount: 1,
+            enemySpawnIntervalTicks: 240
+        ),
+        StageDefinition(
+            title: "Stage 2",
+            initialMinerals: 55,
+            playerBaseHealth: 110,
+            enemyBaseHealth: 170,
+            initialEnemyCount: 2,
+            enemySpawnIntervalTicks: 190
+        ),
+        StageDefinition(
+            title: "Final Stage",
+            initialMinerals: 70,
+            playerBaseHealth: 120,
+            enemyBaseHealth: 230,
+            initialEnemyCount: 3,
+            enemySpawnIntervalTicks: 150
+        )
+    ]
+
+    private var currentStage: StageDefinition {
+        Self.stages[stageIndex]
+    }
+
+    private var playerBasePosition: CGPoint {
+        Self.playerBasePosition
+    }
+
+    private var mineralPosition: CGPoint {
+        Self.mineralPosition
+    }
+
+    private var enemyBasePosition: CGPoint {
+        Self.enemyBasePosition
+    }
+
+    private var isFinalStage: Bool {
+        stageIndex == Self.stages.count - 1
+    }
     private let soldierAttackRange: CGFloat = 42
     private let soldierAggroRange: CGFloat = 150
 
@@ -49,6 +94,7 @@ struct ContentView: View {
 
     private var hud: some View {
         HStack(spacing: 12) {
+            Label(currentStage.title, systemImage: "flag.checkered")
             Label("Minerals: \(minerals)", systemImage: "diamond.fill")
             Label("Base: \(baseHealth)", systemImage: "shield.fill")
             Label("Enemy: \(max(enemyBaseHealth, 0))", systemImage: "flame.fill")
@@ -139,7 +185,7 @@ struct ContentView: View {
                 systemImage: "house.fill",
                 color: .cyan,
                 health: baseHealth,
-                maxHealth: 100
+                maxHealth: currentStage.playerBaseHealth
             )
             .position(screenPoint(playerBasePosition, scale: scale, xOffset: xOffset, yOffset: yOffset))
 
@@ -151,7 +197,7 @@ struct ContentView: View {
                 systemImage: "bolt.fill",
                 color: .red,
                 health: max(enemyBaseHealth, 0),
-                maxHealth: 120
+                maxHealth: currentStage.enemyBaseHealth
             )
             .position(screenPoint(enemyBasePosition, scale: scale, xOffset: xOffset, yOffset: yOffset))
 
@@ -214,32 +260,73 @@ struct ContentView: View {
     }
 
     private var resultOverlay: some View {
-        VStack(spacing: 12) {
-            Image(systemName: gameStatus == .clear ? "crown.fill" : "xmark.octagon.fill")
-                .font(.system(size: 42, weight: .bold))
-                .foregroundStyle(gameStatus == .clear ? .yellow : .red)
+        let didWin = gameStatus == .stageClear || gameStatus == .allClear
 
-            Text(gameStatus == .clear ? "CLEAR" : "GAME OVER")
+        return VStack(spacing: 12) {
+            Image(systemName: didWin ? "crown.fill" : "xmark.octagon.fill")
+                .font(.system(size: 42, weight: .bold))
+                .foregroundStyle(didWin ? .yellow : .red)
+
+            Text(resultTitle)
                 .font(.system(size: 34, weight: .heavy, design: .rounded))
                 .foregroundStyle(.white)
 
-            Text(gameStatus == .clear ? "Enemy base destroyed" : "Your base was destroyed")
+            Text(resultMessage)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.78))
 
-            Button {
-                resetGame()
-            } label: {
-                Label("Retry", systemImage: "arrow.clockwise")
-                    .font(.system(size: 16, weight: .bold))
+            HStack(spacing: 10) {
+                Button {
+                    resetStage()
+                } label: {
+                    Label("Retry", systemImage: "arrow.clockwise")
+                        .font(.system(size: 16, weight: .bold))
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+
+                if gameStatus == .stageClear {
+                    Button {
+                        advanceStage()
+                    } label: {
+                        Label("Next", systemImage: "arrow.right")
+                            .font(.system(size: 16, weight: .bold))
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
             .padding(.top, 10)
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black.opacity(0.62))
+    }
+
+    private var resultTitle: String {
+        switch gameStatus {
+        case .playing:
+            return ""
+        case .stageClear:
+            return "STAGE CLEAR"
+        case .allClear:
+            return "ALL CLEAR"
+        case .gameOver:
+            return "GAME OVER"
+        }
+    }
+
+    private var resultMessage: String {
+        switch gameStatus {
+        case .playing:
+            return ""
+        case .stageClear:
+            return "\(currentStage.title) completed"
+        case .allClear:
+            return "All enemy bases destroyed"
+        case .gameOver:
+            return "Your base was destroyed"
+        }
     }
 
     private func unitView(_ unit: RTSUnit) -> some View {
@@ -354,21 +441,32 @@ struct ContentView: View {
         units.append(RTSUnit(kind: .soldier, position: CGPoint(x: 116, y: 112)))
     }
 
-    private func resetGame() {
-        minerals = 40
-        baseHealth = 100
-        enemyBaseHealth = 120
-        units = [
+    private func resetStage() {
+        minerals = currentStage.initialMinerals
+        baseHealth = currentStage.playerBaseHealth
+        enemyBaseHealth = currentStage.enemyBaseHealth
+        units = Self.makePlayerUnits()
+        enemyUnits = currentStage.makeEnemyUnits(
+            target: playerBasePosition,
+            enemyBasePosition: enemyBasePosition
+        )
+        selectedUnitIDs = []
+        enemySpawnTicks = 0
+        gameStatus = .playing
+    }
+
+    private func advanceStage() {
+        guard stageIndex < Self.stages.count - 1 else { return }
+        stageIndex += 1
+        resetStage()
+    }
+
+    private static func makePlayerUnits() -> [RTSUnit] {
+        [
             RTSUnit(kind: .worker, position: CGPoint(x: 96, y: 190)),
             RTSUnit(kind: .worker, position: CGPoint(x: 136, y: 220)),
             RTSUnit(kind: .soldier, position: CGPoint(x: 118, y: 280))
         ]
-        enemyUnits = [
-            RTSUnit(kind: .soldier, position: CGPoint(x: 300, y: 370), target: playerBasePosition)
-        ]
-        selectedUnitIDs = []
-        enemySpawnTicks = 0
-        gameStatus = .playing
     }
 
     private func runGameLoop() async {
@@ -454,7 +552,7 @@ struct ContentView: View {
     private func updateGameStatus() {
         if enemyBaseHealth <= 0 {
             enemyBaseHealth = 0
-            gameStatus = .clear
+            gameStatus = isFinalStage ? .allClear : .stageClear
         } else if baseHealth <= 0 {
             baseHealth = 0
             gameStatus = .gameOver
@@ -465,7 +563,7 @@ struct ContentView: View {
         guard enemyBaseHealth > 0 else { return }
 
         enemySpawnTicks += 1
-        guard enemySpawnTicks >= 240 else { return }
+        guard enemySpawnTicks >= currentStage.enemySpawnIntervalTicks else { return }
 
         enemySpawnTicks = 0
         let spawnOffset = CGFloat((enemyUnits.count % 3) * 20 - 20)
@@ -511,6 +609,32 @@ struct ContentView: View {
         yOffset: CGFloat
     ) -> CGPoint {
         CGPoint(x: xOffset + boardPoint.x * scale, y: yOffset + boardPoint.y * scale)
+    }
+}
+
+private struct StageDefinition {
+    let title: String
+    let initialMinerals: Int
+    let playerBaseHealth: Int
+    let enemyBaseHealth: Int
+    let initialEnemyCount: Int
+    let enemySpawnIntervalTicks: Int
+
+    func makeEnemyUnits(target: CGPoint, enemyBasePosition: CGPoint) -> [RTSUnit] {
+        (0..<initialEnemyCount).map { index in
+            let column = index % 3 - 1
+            let row = index / 3
+            let position = CGPoint(
+                x: enemyBasePosition.x + CGFloat(column * 26),
+                y: enemyBasePosition.y - 40 - CGFloat(row * 24)
+            )
+
+            return RTSUnit(
+                kind: .soldier,
+                position: position,
+                target: target
+            )
+        }
     }
 }
 
@@ -582,7 +706,8 @@ private enum UnitKind {
 
 private enum GameStatus {
     case playing
-    case clear
+    case stageClear
+    case allClear
     case gameOver
 }
 
