@@ -530,7 +530,7 @@ struct ContentView: View {
 
         for index in enemyUnits.indices where enemyUnits[index].kind == .soldier {
             if let targetIndex = nearestUnitIndex(to: enemyUnits[index].position, in: units),
-               enemyUnits[index].position.distance(to: units[targetIndex].position) < soldierAttackRange {
+               units[index].position.distance(to: units[targetIndex].position) < soldierAttackRange {
                 playerDamage[targetIndex] += enemyUnits[index].kind.attackDamage
             } else if enemyUnits[index].position.distance(to: playerBasePosition) < 52, baseHealth > 0 {
                 baseHealth -= enemyUnits[index].kind.attackDamage
@@ -615,11 +615,11 @@ struct ContentView: View {
 
 private struct StageDefinition {
     let title: String
-    let initialMinerals: Int
-    let playerBaseHealth: Int
-    let enemyBaseHealth: Int
-    let initialEnemyCount: Int
-    let enemySpawnIntervalTicks: Int
+    var initialMinerals: Int = 0
+    var playerBaseHealth: Int = 100
+    var enemyBaseHealth: Int = 100
+    var initialEnemyCount: Int = 0
+    var enemySpawnIntervalTicks: Int = 99999
 
     func makeEnemyUnits(target: CGPoint, enemyBasePosition: CGPoint) -> [RTSUnit] {
         (0..<initialEnemyCount).map { index in
