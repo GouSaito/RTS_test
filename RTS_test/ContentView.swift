@@ -4,23 +4,19 @@
 //
 //  Created by 斎藤剛 on 2026/05/23.
 //
-// test
 
 import SwiftUI
 
 struct ContentView: View {
     @State private var stageIndex = 0
-    @State private var minerals = ContentView.stages[0].initialMinerals
-    @State private var baseHealth = ContentView.stages[0].playerBaseHealth
-    @State private var enemyBaseHealth = ContentView.stages[0].enemyBaseHealth
-    @State private var units: [RTSUnit] = ContentView.makePlayerUnits()
-    @State private var enemyUnits: [RTSUnit] = ContentView.stages[0].makeEnemyUnits(
-        target: ContentView.playerBasePosition,
-        enemyBasePosition: ContentView.enemyBasePosition
-    )
+    @State private var minerals = 0
+    @State private var baseHealth = 100
+    @State private var enemyBaseHealth = 100
+    @State private var units: [RTSUnit] = []
+    @State private var enemyUnits: [RTSUnit] = []
     @State private var selectedUnitIDs: Set<RTSUnit.ID> = []
     @State private var enemySpawnTicks = 0
-    @State private var gameStatus: GameStatus = .playing
+    @State private var gameStatus: GameStatus = .title
 
     private static let playerBasePosition = CGPoint(x: 72, y: 72)
     private static let mineralPosition = CGPoint(x: 278, y: 130)
@@ -28,26 +24,41 @@ struct ContentView: View {
 
     private static let stages: [StageDefinition] = [
         StageDefinition(
-            title: "Stage 1",
-            initialMinerals: 40,
-            playerBaseHealth: 100,
-            enemyBaseHealth: 120,
+            title: "Stage 1：遭遇戦",
+            initialSoldierCount: 1
+        ),
+        StageDefinition(
+            title: "Stage 2：敵の兵士に注意",
+            initialSoldierCount: 2,
             initialEnemyCount: 1,
             enemySpawnIntervalTicks: 240
         ),
         StageDefinition(
-            title: "Stage 2",
-            initialMinerals: 55,
-            playerBaseHealth: 110,
-            enemyBaseHealth: 170,
-            initialEnemyCount: 2,
-            enemySpawnIntervalTicks: 190
+            title: "Stage 3：資源収集の基本",
+            oreCount: 1,
+            initialMinerals: 25,
+            initialWorkerCount: 1,
+            initialSoldierCount: 1,
+            initialEnemyCount: 1,
+            enemySpawnIntervalTicks: 300
         ),
         StageDefinition(
-            title: "Final Stage",
-            initialMinerals: 70,
-            playerBaseHealth: 120,
-            enemyBaseHealth: 230,
+            title: "Stage 4：挟撃を防げ",
+            oreCount: 2,
+            initialMinerals: 50,
+            initialWorkerCount: 2,
+            initialSoldierCount: 1,
+            initialEnemyCount: 2,
+            enemySpawnIntervalTicks: 200
+        ),
+        StageDefinition(
+            title: "Final Stage：総力戦",
+            oreCount: 3,
+            initialMinerals: 100,
+            playerBaseHealth: 150,
+            initialWorkerCount: 3,
+            initialSoldierCount: 3,
+            enemyBaseHealth: 250,
             initialEnemyCount: 3,
             enemySpawnIntervalTicks: 150
         )
@@ -61,8 +72,14 @@ struct ContentView: View {
         Self.playerBasePosition
     }
 
-    private var mineralPosition: CGPoint {
-        Self.mineralPosition
+    private var mineralPositions: [CGPoint] {
+        guard currentStage.oreCount > 0 else { return [] }
+        return (0..<currentStage.oreCount).map { i in
+            CGPoint(
+                x: Self.mineralPosition.x - CGFloat(i * 46),
+                y: Self.mineralPosition.y + CGFloat(i * 12)
+            )
+        }
     }
 
     private var enemyBasePosition: CGPoint {
@@ -77,15 +94,19 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            VStack(spacing: 0) {
-                hud
-                battlefield
-                commandBar
-            }
-            .background(Color(red: 0.08, green: 0.11, blue: 0.09))
+            if gameStatus == .title {
+                stageSelectView
+            } else {
+                VStack(spacing: 0) {
+                    hud
+                    battlefield
+                    commandBar
+                }
+                .background(Color(red: 0.08, green: 0.11, blue: 0.09))
 
-            if gameStatus != .playing {
-                resultOverlay
+                if gameStatus != .playing {
+                    resultOverlay
+                }
             }
         }
         .task {
@@ -93,8 +114,89 @@ struct ContentView: View {
         }
     }
 
+    private var stageSelectView: some View {
+        VStack(spacing: 20) {
+            VStack(spacing: 8) {
+                Text("MINI RTS")
+                    .font(.system(size: 38, weight: .black, design: .rounded))
+                    .foregroundStyle(.yellow)
+                    .shadow(radius: 6)
+
+                Text("ステージを選択して開始してください")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+            .padding(.top, 40)
+
+            ScrollView {
+                VStack(spacing: 12) {
+                    ForEach(0..<Self.stages.count, id: \.self) { index in
+                        let stage = Self.stages[index]
+                        Button {
+                            selectAndStartStage(index: index)
+                        } label: {
+                            HStack(spacing: 16) {
+                                Circle()
+                                    .fill(Color(red: 0.18, green: 0.24, blue: 0.19))
+                                    .frame(width: 36, height: 36)
+                                    .overlay(
+                                        Text("\(index + 1)")
+                                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                                            .foregroundStyle(.yellow)
+                                    )
+
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text(stage.title.isEmpty ? "Stage \(index + 1)" : stage.title)
+                                        .font(.system(size: 15, weight: .bold))
+                                        .foregroundStyle(.white)
+
+                                    HStack(spacing: 12) {
+                                        Label("\(stage.initialMinerals)", systemImage: "diamond.fill")
+                                        Label("\(stage.initialWorkerCount)", systemImage: "wrench.fill")
+                                        Label("\(stage.initialSoldierCount)", systemImage: "target")
+                                        Label("\(stage.oreCount)", systemImage: "sparkles")
+                                    }
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(.white.opacity(0.55))
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(.yellow.opacity(0.8))
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
+                            .background(Color(red: 0.12, green: 0.16, blue: 0.13))
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                            )
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 30)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(red: 0.08, green: 0.11, blue: 0.09))
+    }
+
     private var hud: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
+            Button {
+                gameStatus = .title
+            } label: {
+                Image(systemName: "line.3.horizontal")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(.yellow)
+                    .padding(6)
+                    .background(Color.white.opacity(0.12), in: Circle())
+            }
+
             Label(currentStage.title, systemImage: "flag.checkered")
             Label("Minerals: \(minerals)", systemImage: "diamond.fill")
             Label("Base: \(baseHealth)", systemImage: "shield.fill")
@@ -103,7 +205,7 @@ struct ContentView: View {
         }
         .font(.system(size: 13, weight: .semibold, design: .rounded))
         .foregroundStyle(.white)
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(red: 0.12, green: 0.16, blue: 0.13))
@@ -190,8 +292,10 @@ struct ContentView: View {
             )
             .position(screenPoint(playerBasePosition, scale: scale, xOffset: xOffset, yOffset: yOffset))
 
-            resourceNode
-                .position(screenPoint(mineralPosition, scale: scale, xOffset: xOffset, yOffset: yOffset))
+            ForEach(0..<mineralPositions.count, id: \.self) { index in
+                resourceNode
+                    .position(screenPoint(mineralPositions[index], scale: scale, xOffset: xOffset, yOffset: yOffset))
+            }
 
             structure(
                 title: "Enemy",
@@ -230,13 +334,22 @@ struct ContentView: View {
     }
 
     private var commandBar: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Button {
                 selectedUnitIDs = Set(units.map(\.id))
             } label: {
-                Label("Select All", systemImage: "scope")
+                Label("All", systemImage: "scope")
             }
             .disabled(gameStatus != .playing)
+
+            Button {
+                selectedUnitIDs.removeAll()
+            } label: {
+                Label("Clear", systemImage: "xmark.circle")
+            }
+            .disabled(gameStatus != .playing || selectedUnitIDs.isEmpty)
+
+            Spacer(minLength: 0)
 
             Button {
                 trainWorker()
@@ -252,10 +365,11 @@ struct ContentView: View {
             }
             .disabled(gameStatus != .playing || minerals < 40)
         }
-        .font(.system(size: 13, weight: .semibold))
+        .font(.system(size: 12, weight: .semibold))
         .buttonStyle(.borderedProminent)
         .controlSize(.small)
-        .padding(12)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity)
         .background(Color(red: 0.12, green: 0.16, blue: 0.13))
     }
@@ -276,26 +390,38 @@ struct ContentView: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.78))
 
-            HStack(spacing: 10) {
-                Button {
-                    resetStage()
-                } label: {
-                    Label("Retry", systemImage: "arrow.clockwise")
-                        .font(.system(size: 16, weight: .bold))
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-
-                if gameStatus == .stageClear {
+            VStack(spacing: 10) {
+                HStack(spacing: 10) {
                     Button {
-                        advanceStage()
+                        resetStage()
                     } label: {
-                        Label("Next", systemImage: "arrow.right")
+                        Label("Retry", systemImage: "arrow.clockwise")
                             .font(.system(size: 16, weight: .bold))
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
+
+                    if gameStatus == .stageClear {
+                        Button {
+                            advanceStage()
+                        } label: {
+                            Label("Next", systemImage: "arrow.right")
+                                .font(.system(size: 16, weight: .bold))
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                    }
                 }
+
+                Button {
+                    gameStatus = .title
+                } label: {
+                    Label("ステージ選択に戻る", systemImage: "list.bullet")
+                        .font(.system(size: 15, weight: .bold))
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .tint(.yellow)
             }
             .padding(.top, 10)
         }
@@ -306,7 +432,7 @@ struct ContentView: View {
 
     private var resultTitle: String {
         switch gameStatus {
-        case .playing:
+        case .title, .playing:
             return ""
         case .stageClear:
             return "STAGE CLEAR"
@@ -319,7 +445,7 @@ struct ContentView: View {
 
     private var resultMessage: String {
         switch gameStatus {
-        case .playing:
+        case .title, .playing:
             return ""
         case .stageClear:
             return "\(currentStage.title) completed"
@@ -442,32 +568,30 @@ struct ContentView: View {
         units.append(RTSUnit(kind: .soldier, position: CGPoint(x: 116, y: 112)))
     }
 
+    private func selectAndStartStage(index: Int) {
+        stageIndex = index
+        resetStage()
+        gameStatus = .playing
+    }
+
     private func resetStage() {
         minerals = currentStage.initialMinerals
         baseHealth = currentStage.playerBaseHealth
         enemyBaseHealth = currentStage.enemyBaseHealth
-        units = Self.makePlayerUnits()
+        units = currentStage.makePlayerUnits(playerBasePosition: playerBasePosition)
         enemyUnits = currentStage.makeEnemyUnits(
             target: playerBasePosition,
             enemyBasePosition: enemyBasePosition
         )
         selectedUnitIDs = []
         enemySpawnTicks = 0
-        gameStatus = .playing
     }
 
     private func advanceStage() {
         guard stageIndex < Self.stages.count - 1 else { return }
         stageIndex += 1
         resetStage()
-    }
-
-    private static func makePlayerUnits() -> [RTSUnit] {
-        [
-            RTSUnit(kind: .worker, position: CGPoint(x: 96, y: 190)),
-            RTSUnit(kind: .worker, position: CGPoint(x: 136, y: 220)),
-            RTSUnit(kind: .soldier, position: CGPoint(x: 118, y: 280))
-        ]
+        gameStatus = .playing
     }
 
     private func runGameLoop() async {
@@ -492,11 +616,16 @@ struct ContentView: View {
         for index in units.indices {
             move(&units[index])
 
-            if units[index].kind == .worker, units[index].position.distance(to: mineralPosition) < 34 {
-                units[index].carryTicks += 1
-                if units[index].carryTicks >= 8 {
-                    minerals += 1
-                    units[index].carryTicks = 0
+            if units[index].kind == .worker {
+                let isNearAnyMineral = mineralPositions.contains { position in
+                    units[index].position.distance(to: position) < 34
+                }
+                if isNearAnyMineral {
+                    units[index].carryTicks += 1
+                    if units[index].carryTicks >= 8 {
+                        minerals += 1
+                        units[index].carryTicks = 0
+                    }
                 }
             }
         }
@@ -530,7 +659,7 @@ struct ContentView: View {
 
         for index in enemyUnits.indices where enemyUnits[index].kind == .soldier {
             if let targetIndex = nearestUnitIndex(to: enemyUnits[index].position, in: units),
-               units[index].position.distance(to: units[targetIndex].position) < soldierAttackRange {
+               enemyUnits[index].position.distance(to: units[targetIndex].position) < soldierAttackRange {
                 playerDamage[targetIndex] += enemyUnits[index].kind.attackDamage
             } else if enemyUnits[index].position.distance(to: playerBasePosition) < 52, baseHealth > 0 {
                 baseHealth -= enemyUnits[index].kind.attackDamage
@@ -615,11 +744,36 @@ struct ContentView: View {
 
 private struct StageDefinition {
     let title: String
+    var oreCount: Int = 0
     var initialMinerals: Int = 0
     var playerBaseHealth: Int = 100
+    var initialWorkerCount: Int = 0
+    var initialSoldierCount: Int = 0
     var enemyBaseHealth: Int = 100
     var initialEnemyCount: Int = 0
     var enemySpawnIntervalTicks: Int = 99999
+
+    init(
+        title: String,
+        oreCount: Int = 0,
+        initialMinerals: Int = 0,
+        playerBaseHealth: Int = 100,
+        initialWorkerCount: Int = 0,
+        initialSoldierCount: Int = 0,
+        enemyBaseHealth: Int = 100,
+        initialEnemyCount: Int = 0,
+        enemySpawnIntervalTicks: Int = 99999
+    ) {
+        self.title = title
+        self.oreCount = oreCount
+        self.initialMinerals = initialMinerals
+        self.playerBaseHealth = playerBaseHealth
+        self.initialWorkerCount = initialWorkerCount
+        self.initialSoldierCount = initialSoldierCount
+        self.enemyBaseHealth = enemyBaseHealth
+        self.initialEnemyCount = initialEnemyCount
+        self.enemySpawnIntervalTicks = enemySpawnIntervalTicks
+    }
 
     func makeEnemyUnits(target: CGPoint, enemyBasePosition: CGPoint) -> [RTSUnit] {
         (0..<initialEnemyCount).map { index in
@@ -636,6 +790,34 @@ private struct StageDefinition {
                 target: target
             )
         }
+    }
+
+    func makePlayerUnits(playerBasePosition: CGPoint) -> [RTSUnit] {
+        var playerUnits: [RTSUnit] = []
+        
+        for i in 0..<initialWorkerCount {
+            let xOffset = CGFloat(24 + (i % 3) * 30)
+            let yOffset = CGFloat(110 + (i / 3) * 24)
+            playerUnits.append(
+                RTSUnit(
+                    kind: .worker,
+                    position: CGPoint(x: playerBasePosition.x + xOffset, y: playerBasePosition.y + yOffset)
+                )
+            )
+        }
+        
+        for i in 0..<initialSoldierCount {
+            let xOffset = CGFloat(46 + (i % 3) * 30)
+            let yOffset = CGFloat(180 + (i / 3) * 24)
+            playerUnits.append(
+                RTSUnit(
+                    kind: .soldier,
+                    position: CGPoint(x: playerBasePosition.x + xOffset, y: playerBasePosition.y + yOffset)
+                )
+            )
+        }
+        
+        return playerUnits
     }
 }
 
@@ -706,6 +888,7 @@ private enum UnitKind {
 }
 
 private enum GameStatus {
+    case title
     case playing
     case stageClear
     case allClear
