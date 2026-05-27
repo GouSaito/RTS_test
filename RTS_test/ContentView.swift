@@ -15,10 +15,12 @@ struct ContentView: View {
     @State private var units: [RTSUnit] = []
     @State private var enemyUnits: [RTSUnit] = []
     @State private var selectedUnitIDs: Set<RTSUnit.ID> = []
+    @State private var selectedProductionSite: ProductionSite?
     @State private var enemySpawnTicks = 0
     @State private var gameStatus: GameStatus = .title
 
     private static let playerBasePosition = CGPoint(x: 72, y: 72)
+    private static let campPosition = CGPoint(x: 168, y: 78)
     private static let mineralPosition = CGPoint(x: 278, y: 130)
     private static let enemyBasePosition = CGPoint(x: 314, y: 410)
 
@@ -82,6 +84,21 @@ struct ContentView: View {
 
     private var playerBasePosition: CGPoint {
         Self.playerBasePosition
+    }
+
+    private var campPosition: CGPoint {
+        Self.campPosition
+    }
+
+    private var selectedProductionPosition: CGPoint? {
+        switch selectedProductionSite {
+        case .base:
+            return playerBasePosition
+        case .camp:
+            return campPosition
+        case nil:
+            return nil
+        }
     }
 
     private var mineralPositions: [CGPoint] {
@@ -299,9 +316,20 @@ struct ContentView: View {
                 systemImage: "house.fill",
                 color: .cyan,
                 health: baseHealth,
-                maxHealth: currentStage.playerBaseHealth
+                maxHealth: currentStage.playerBaseHealth,
+                isSelected: selectedProductionSite == .base
             )
             .position(screenPoint(playerBasePosition, scale: scale, xOffset: xOffset, yOffset: yOffset))
+
+            structure(
+                title: "Camp",
+                systemImage: "tent.fill",
+                color: .green,
+                health: 100,
+                maxHealth: 100,
+                isSelected: selectedProductionSite == .camp
+            )
+            .position(screenPoint(campPosition, scale: scale, xOffset: xOffset, yOffset: yOffset))
 
             ForEach(0..<mineralPositions.count, id: \.self) { index in
                 resourceNode
@@ -348,6 +376,7 @@ struct ContentView: View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
                 Button {
+                    selectedProductionSite = nil
                     selectedUnitIDs = Set(units.map(\.id))
                 } label: {
                     Label("All", systemImage: "scope")
@@ -356,10 +385,11 @@ struct ContentView: View {
 
                 Button {
                     selectedUnitIDs.removeAll()
+                    selectedProductionSite = nil
                 } label: {
                     Label("Clear", systemImage: "xmark.circle")
                 }
-                .disabled(gameStatus != .playing || selectedUnitIDs.isEmpty)
+                .disabled(gameStatus != .playing || (selectedUnitIDs.isEmpty && selectedProductionSite == nil))
 
                 Spacer()
             }
@@ -396,7 +426,7 @@ struct ContentView: View {
                 Text("\(kind.displayName) \(cost)")
             }
         }
-        .disabled(gameStatus != .playing || minerals < cost)
+        .disabled(gameStatus != .playing || minerals < cost || selectedProductionSite == nil)
         .buttonStyle(.borderedProminent)
         .tint(kind.color)
         .controlSize(.small)
@@ -539,7 +569,8 @@ struct ContentView: View {
         systemImage: String,
         color: Color,
         health: Int,
-        maxHealth: Int
+        maxHealth: Int,
+        isSelected: Bool = false
     ) -> some View {
         VStack(spacing: 5) {
             ZStack {
@@ -559,13 +590,30 @@ struct ContentView: View {
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(.white)
         }
+        .padding(5)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(isSelected ? Color.yellow : Color.clear, lineWidth: 3)
+        )
     }
 
     private func handleTap(at point: CGPoint) {
         let boardPoint = point
         guard gameStatus == .playing else { return }
         guard boardPoint.x >= 0, boardPoint.x <= 390, boardPoint.y >= 0, boardPoint.y <= 520 else { return }
+
+        if boardPoint.distance(to: playerBasePosition) < 44 {
+            selectProductionSite(.base)
+            return
+        }
+
+        if boardPoint.distance(to: campPosition) < 44 {
+            selectProductionSite(.camp)
+            return
+        }
+
         guard !selectedUnitIDs.isEmpty else { return }
+        selectedProductionSite = nil
 
         for index in units.indices where selectedUnitIDs.contains(units[index].id) {
             let offset = formationOffset(for: index)
@@ -578,6 +626,7 @@ struct ContentView: View {
 
     private func toggleSelection(for id: RTSUnit.ID) {
         guard gameStatus == .playing else { return }
+        selectedProductionSite = nil
 
         if selectedUnitIDs.contains(id) {
             selectedUnitIDs.remove(id)
@@ -586,10 +635,39 @@ struct ContentView: View {
         }
     }
 
+    private func selectProductionSite(_ site: ProductionSite) {
+        selectedProductionSite = site
+        selectedUnitIDs.removeAll()
+    }
+
     private func trainUnit(kind: UnitKind, cost: Int) {
-        guard gameStatus == .playing, minerals >= cost else { return }
+        guard gameStatus == .playing,
+              minerals >= cost,
+              let productionPosition = selectedProductionPosition else { return }
+
         minerals -= cost
-        units.append(RTSUnit(kind: kind, position: CGPoint(x: 92, y: 112)))
+        units.append(
+            RTSUnit(
+                kind: kind,
+                position: spawnPosition(near: productionPosition)
+            )
+        )
+    }
+
+    private func spawnPosition(near position: CGPoint) -> CGPoint {
+        let spawnIndex = units.count % 4
+        let offsets = [
+            CGSize(width: 20, height: 36),
+            CGSize(width: 44, height: 28),
+            CGSize(width: -20, height: 36),
+            CGSize(width: 28, height: 58)
+        ]
+        let offset = offsets[spawnIndex]
+
+        return CGPoint(
+            x: min(max(position.x + offset.width, 18), 372),
+            y: min(max(position.y + offset.height, 18), 502)
+        )
     }
 
     private func selectAndStartStage(index: Int) {
@@ -608,6 +686,7 @@ struct ContentView: View {
             enemyBasePosition: enemyBasePosition
         )
         selectedUnitIDs = []
+        selectedProductionSite = nil
         enemySpawnTicks = 0
     }
 
@@ -1033,6 +1112,11 @@ private enum GameStatus {
     case stageClear
     case allClear
     case gameOver
+}
+
+private enum ProductionSite {
+    case base
+    case camp
 }
 
 private extension CGPoint {
