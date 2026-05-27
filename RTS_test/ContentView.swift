@@ -24,42 +24,54 @@ struct ContentView: View {
 
     private static let stages: [StageDefinition] = [
         StageDefinition(
-            title: "Stage 1：遭遇戦",
-            initialSoldierCount: 1
+            title: "Stage 1：三すくみの遭遇戦",
+            initialSwordCount: 1,
+            initialSpearCount: 1,
+            initialAxeCount: 1,
+            initialEnemyCount: 2
         ),
         StageDefinition(
-            title: "Stage 2：敵の兵士に注意",
-            initialSoldierCount: 2,
-            initialEnemyCount: 1,
+            title: "Stage 2：遠距離射撃の試練",
+            initialBowCount: 2,
+            initialShieldCount: 1,
+            initialEnemyCount: 3,
             enemySpawnIntervalTicks: 240
         ),
         StageDefinition(
-            title: "Stage 3：資源収集の基本",
+            title: "Stage 3：資源採掘と回復の護り",
             oreCount: 1,
-            initialMinerals: 25,
+            initialMinerals: 50,
             initialWorkerCount: 1,
-            initialSoldierCount: 1,
-            initialEnemyCount: 1,
+            initialSwordCount: 1,
+            initialShieldCount: 1,
+            initialCureCount: 1,
+            initialEnemyCount: 2,
             enemySpawnIntervalTicks: 300
         ),
         StageDefinition(
-            title: "Stage 4：挟撃を防げ",
+            title: "Stage 4：挟撃突破作戦",
             oreCount: 2,
-            initialMinerals: 50,
+            initialMinerals: 100,
             initialWorkerCount: 2,
-            initialSoldierCount: 1,
-            initialEnemyCount: 2,
+            initialSwordCount: 1,
+            initialBowCount: 1,
+            initialShieldCount: 1,
+            initialEnemyCount: 4,
             enemySpawnIntervalTicks: 200
         ),
         StageDefinition(
-            title: "Final Stage：総力戦",
+            title: "Final Stage：城砦攻略の総力戦",
             oreCount: 3,
-            initialMinerals: 100,
+            initialMinerals: 150,
             playerBaseHealth: 150,
             initialWorkerCount: 3,
-            initialSoldierCount: 3,
+            initialSwordCount: 2,
+            initialSpearCount: 1,
+            initialBowCount: 2,
+            initialShieldCount: 2,
+            initialCureCount: 1,
             enemyBaseHealth: 250,
-            initialEnemyCount: 3,
+            initialEnemyCount: 5,
             enemySpawnIntervalTicks: 150
         )
     ]
@@ -89,7 +101,6 @@ struct ContentView: View {
     private var isFinalStage: Bool {
         stageIndex == Self.stages.count - 1
     }
-    private let soldierAttackRange: CGFloat = 42
     private let soldierAggroRange: CGFloat = 150
 
     var body: some View {
@@ -150,10 +161,10 @@ struct ContentView: View {
                                         .font(.system(size: 15, weight: .bold))
                                         .foregroundStyle(.white)
 
-                                    HStack(spacing: 12) {
+                                    HStack(spacing: 10) {
                                         Label("\(stage.initialMinerals)", systemImage: "diamond.fill")
                                         Label("\(stage.initialWorkerCount)", systemImage: "wrench.fill")
-                                        Label("\(stage.initialSoldierCount)", systemImage: "target")
+                                        Label("\(stage.totalInitialCombatUnits)", systemImage: "person.fill")
                                         Label("\(stage.oreCount)", systemImage: "sparkles")
                                     }
                                     .font(.system(size: 11, weight: .medium))
@@ -334,44 +345,62 @@ struct ContentView: View {
     }
 
     private var commandBar: some View {
-        HStack(spacing: 8) {
-            Button {
-                selectedUnitIDs = Set(units.map(\.id))
-            } label: {
-                Label("All", systemImage: "scope")
-            }
-            .disabled(gameStatus != .playing)
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Button {
+                    selectedUnitIDs = Set(units.map(\.id))
+                } label: {
+                    Label("All", systemImage: "scope")
+                }
+                .disabled(gameStatus != .playing)
 
-            Button {
-                selectedUnitIDs.removeAll()
-            } label: {
-                Label("Clear", systemImage: "xmark.circle")
-            }
-            .disabled(gameStatus != .playing || selectedUnitIDs.isEmpty)
+                Button {
+                    selectedUnitIDs.removeAll()
+                } label: {
+                    Label("Clear", systemImage: "xmark.circle")
+                }
+                .disabled(gameStatus != .playing || selectedUnitIDs.isEmpty)
 
-            Spacer(minLength: 0)
-
-            Button {
-                trainWorker()
-            } label: {
-                Label("Worker 25", systemImage: "hammer.fill")
+                Spacer()
             }
-            .disabled(gameStatus != .playing || minerals < 25)
+            .font(.system(size: 12, weight: .semibold))
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+            .padding(.horizontal, 10)
 
-            Button {
-                trainSoldier()
-            } label: {
-                Label("Soldier 40", systemImage: "shield.lefthalf.filled")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    trainButton(kind: .worker, cost: 25)
+                    trainButton(kind: .sword, cost: 35)
+                    trainButton(kind: .spear, cost: 35)
+                    trainButton(kind: .axe, cost: 35)
+                    trainButton(kind: .bow, cost: 45)
+                    trainButton(kind: .shield, cost: 30)
+                    trainButton(kind: .cure, cost: 40)
+                }
+                .padding(.horizontal, 10)
             }
-            .disabled(gameStatus != .playing || minerals < 40)
         }
-        .font(.system(size: 12, weight: .semibold))
-        .buttonStyle(.borderedProminent)
-        .controlSize(.small)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 12)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity)
         .background(Color(red: 0.12, green: 0.16, blue: 0.13))
+    }
+
+    @ViewBuilder
+    private func trainButton(kind: UnitKind, cost: Int) -> some View {
+        Button {
+            trainUnit(kind: kind, cost: cost)
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: kind.systemImage)
+                Text("\(kind.displayName) \(cost)")
+            }
+        }
+        .disabled(gameStatus != .playing || minerals < cost)
+        .buttonStyle(.borderedProminent)
+        .tint(kind.color)
+        .controlSize(.small)
+        .font(.system(size: 11, weight: .semibold))
     }
 
     private var resultOverlay: some View {
@@ -533,15 +562,16 @@ struct ContentView: View {
     }
 
     private func handleTap(at point: CGPoint) {
+        let boardPoint = point
         guard gameStatus == .playing else { return }
-        guard point.x >= 0, point.x <= 390, point.y >= 0, point.y <= 520 else { return }
+        guard boardPoint.x >= 0, boardPoint.x <= 390, boardPoint.y >= 0, boardPoint.y <= 520 else { return }
         guard !selectedUnitIDs.isEmpty else { return }
 
         for index in units.indices where selectedUnitIDs.contains(units[index].id) {
             let offset = formationOffset(for: index)
             units[index].target = CGPoint(
-                x: min(max(point.x + offset.width, 18), 372),
-                y: min(max(point.y + offset.height, 18), 502)
+                x: min(max(boardPoint.x + offset.width, 18), 372),
+                y: min(max(boardPoint.y + offset.height, 18), 502)
             )
         }
     }
@@ -556,16 +586,10 @@ struct ContentView: View {
         }
     }
 
-    private func trainWorker() {
-        guard gameStatus == .playing, minerals >= 25 else { return }
-        minerals -= 25
-        units.append(RTSUnit(kind: .worker, position: CGPoint(x: 92, y: 112)))
-    }
-
-    private func trainSoldier() {
-        guard gameStatus == .playing, minerals >= 40 else { return }
-        minerals -= 40
-        units.append(RTSUnit(kind: .soldier, position: CGPoint(x: 116, y: 112)))
+    private func trainUnit(kind: UnitKind, cost: Int) {
+        guard gameStatus == .playing, minerals >= cost else { return }
+        minerals -= cost
+        units.append(RTSUnit(kind: kind, position: CGPoint(x: 92, y: 112)))
     }
 
     private func selectAndStartStage(index: Int) {
@@ -644,30 +668,79 @@ struct ContentView: View {
         }
     }
 
+    private func calculateDamage(attacker: UnitKind, defender: UnitKind) -> Int {
+        let baseDamage = attacker.attackDamage
+        guard baseDamage > 0 else { return 0 }
+
+        var multiplier: Double = 1.0
+        switch (attacker, defender) {
+        case (.sword, .axe):
+            multiplier = 1.5
+        case (.spear, .sword):
+            multiplier = 1.5
+        case (.axe, .spear):
+            multiplier = 1.5
+        default:
+            break
+        }
+
+        return Int(Double(baseDamage) * multiplier)
+    }
+
     private func resolveCombat() {
         var playerDamage = Array(repeating: 0, count: units.count)
         var enemyDamage = Array(repeating: 0, count: enemyUnits.count)
+        var playerHeal = Array(repeating: 0, count: units.count)
 
-        for index in units.indices where units[index].kind == .soldier {
-            if let targetIndex = nearestUnitIndex(to: units[index].position, in: enemyUnits),
-               units[index].position.distance(to: enemyUnits[targetIndex].position) < soldierAttackRange {
-                enemyDamage[targetIndex] += units[index].kind.attackDamage
-            } else if units[index].position.distance(to: enemyBasePosition) < 52, enemyBaseHealth > 0 {
-                enemyBaseHealth -= units[index].kind.attackDamage
+        // 1. 味方の行動
+        for index in units.indices {
+            let unit = units[index]
+
+            // ヒーラー(cure)のアクション
+            if unit.kind == .cure {
+                for friendIndex in units.indices where friendIndex != index {
+                    if unit.position.distance(to: units[friendIndex].position) < 42 {
+                        playerHeal[friendIndex] += 2
+                    }
+                }
+                continue
+            }
+
+            // 通常の攻撃
+            let attackRange = unit.kind.attackRange
+            if let targetIndex = nearestUnitIndex(to: unit.position, in: enemyUnits),
+               unit.position.distance(to: enemyUnits[targetIndex].position) < attackRange {
+                let damage = calculateDamage(attacker: unit.kind, defender: enemyUnits[targetIndex].kind)
+                enemyDamage[targetIndex] += damage
+            } else if unit.position.distance(to: enemyBasePosition) < 52, enemyBaseHealth > 0 {
+                enemyBaseHealth -= unit.kind.attackDamage
             }
         }
 
-        for index in enemyUnits.indices where enemyUnits[index].kind == .soldier {
-            if let targetIndex = nearestUnitIndex(to: enemyUnits[index].position, in: units),
-               enemyUnits[index].position.distance(to: units[targetIndex].position) < soldierAttackRange {
-                playerDamage[targetIndex] += enemyUnits[index].kind.attackDamage
-            } else if enemyUnits[index].position.distance(to: playerBasePosition) < 52, baseHealth > 0 {
+        // 2. 敵の行動
+        for index in enemyUnits.indices {
+            let unit = enemyUnits[index]
+
+            // 敵にCureがいる場合（敵ユニット同士の回復）
+            if unit.kind == .cure {
+                continue
+            }
+
+            let attackRange = unit.kind.attackRange
+            if let targetIndex = nearestUnitIndex(to: unit.position, in: units),
+               unit.position.distance(to: units[targetIndex].position) < attackRange {
+                let damage = calculateDamage(attacker: unit.kind, defender: units[targetIndex].kind)
+                playerDamage[targetIndex] += damage
+            } else if unit.position.distance(to: playerBasePosition) < 52, baseHealth > 0 {
                 baseHealth -= enemyUnits[index].kind.attackDamage
             }
         }
 
+        // 3. ダメージと回復の適用
         for index in units.indices {
-            units[index].health -= playerDamage[index]
+            let maxHealth = units[index].kind.maxHealth
+            let nextHealth = units[index].health - playerDamage[index] + playerHeal[index]
+            units[index].health = min(max(nextHealth, 0), maxHealth)
         }
         for index in enemyUnits.indices {
             enemyUnits[index].health -= enemyDamage[index]
@@ -697,9 +770,14 @@ struct ContentView: View {
 
         enemySpawnTicks = 0
         let spawnOffset = CGFloat((enemyUnits.count % 3) * 20 - 20)
+        
+        // 敵はランダムな戦闘職が湧く
+        let enemyPool: [UnitKind] = [.sword, .spear, .axe, .bow, .shield]
+        let chosenEnemy = enemyPool.randomElement() ?? .sword
+        
         enemyUnits.append(
             RTSUnit(
-                kind: .soldier,
+                kind: chosenEnemy,
                 position: CGPoint(x: enemyBasePosition.x + spawnOffset, y: enemyBasePosition.y - 38),
                 target: playerBasePosition
             )
@@ -748,7 +826,12 @@ private struct StageDefinition {
     var initialMinerals: Int = 0
     var playerBaseHealth: Int = 100
     var initialWorkerCount: Int = 0
-    var initialSoldierCount: Int = 0
+    var initialSwordCount: Int = 0
+    var initialSpearCount: Int = 0
+    var initialAxeCount: Int = 0
+    var initialBowCount: Int = 0
+    var initialShieldCount: Int = 0
+    var initialCureCount: Int = 0
     var enemyBaseHealth: Int = 100
     var initialEnemyCount: Int = 0
     var enemySpawnIntervalTicks: Int = 99999
@@ -759,7 +842,12 @@ private struct StageDefinition {
         initialMinerals: Int = 0,
         playerBaseHealth: Int = 100,
         initialWorkerCount: Int = 0,
-        initialSoldierCount: Int = 0,
+        initialSwordCount: Int = 0,
+        initialSpearCount: Int = 0,
+        initialAxeCount: Int = 0,
+        initialBowCount: Int = 0,
+        initialShieldCount: Int = 0,
+        initialCureCount: Int = 0,
         enemyBaseHealth: Int = 100,
         initialEnemyCount: Int = 0,
         enemySpawnIntervalTicks: Int = 99999
@@ -769,14 +857,25 @@ private struct StageDefinition {
         self.initialMinerals = initialMinerals
         self.playerBaseHealth = playerBaseHealth
         self.initialWorkerCount = initialWorkerCount
-        self.initialSoldierCount = initialSoldierCount
+        self.initialSwordCount = initialSwordCount
+        self.initialSpearCount = initialSpearCount
+        self.initialAxeCount = initialAxeCount
+        self.initialBowCount = initialBowCount
+        self.initialShieldCount = initialShieldCount
+        self.initialCureCount = initialCureCount
         self.enemyBaseHealth = enemyBaseHealth
         self.initialEnemyCount = initialEnemyCount
         self.enemySpawnIntervalTicks = enemySpawnIntervalTicks
     }
 
+    // 計算時のタイムアウトを避けるための合算算出プロパティ
+    var totalInitialCombatUnits: Int {
+        initialSwordCount + initialSpearCount + initialAxeCount + initialBowCount + initialShieldCount + initialCureCount
+    }
+
     func makeEnemyUnits(target: CGPoint, enemyBasePosition: CGPoint) -> [RTSUnit] {
-        (0..<initialEnemyCount).map { index in
+        let enemyPool: [UnitKind] = [.sword, .spear, .axe, .bow, .shield]
+        return (0..<initialEnemyCount).map { index in
             let column = index % 3 - 1
             let row = index / 3
             let position = CGPoint(
@@ -784,8 +883,9 @@ private struct StageDefinition {
                 y: enemyBasePosition.y - 40 - CGFloat(row * 24)
             )
 
+            let kind = enemyPool[index % enemyPool.count]
             return RTSUnit(
-                kind: .soldier,
+                kind: kind,
                 position: position,
                 target: target
             )
@@ -795,27 +895,28 @@ private struct StageDefinition {
     func makePlayerUnits(playerBasePosition: CGPoint) -> [RTSUnit] {
         var playerUnits: [RTSUnit] = []
         
-        for i in 0..<initialWorkerCount {
-            let xOffset = CGFloat(24 + (i % 3) * 30)
-            let yOffset = CGFloat(110 + (i / 3) * 24)
-            playerUnits.append(
-                RTSUnit(
-                    kind: .worker,
-                    position: CGPoint(x: playerBasePosition.x + xOffset, y: playerBasePosition.y + yOffset)
+        var index = 0
+        func spawnUnits(kind: UnitKind, count: Int, yOffsetBase: CGFloat) {
+            for _ in 0..<count {
+                let xOffset = CGFloat(24 + (index % 3) * 30)
+                let yOffset = yOffsetBase + CGFloat((index / 3) * 24)
+                playerUnits.append(
+                    RTSUnit(
+                        kind: kind,
+                        position: CGPoint(x: playerBasePosition.x + xOffset, y: playerBasePosition.y + yOffset)
+                    )
                 )
-            )
+                index += 1
+            }
         }
-        
-        for i in 0..<initialSoldierCount {
-            let xOffset = CGFloat(46 + (i % 3) * 30)
-            let yOffset = CGFloat(180 + (i / 3) * 24)
-            playerUnits.append(
-                RTSUnit(
-                    kind: .soldier,
-                    position: CGPoint(x: playerBasePosition.x + xOffset, y: playerBasePosition.y + yOffset)
-                )
-            )
-        }
+
+        spawnUnits(kind: .worker, count: initialWorkerCount, yOffsetBase: 110)
+        spawnUnits(kind: .shield, count: initialShieldCount, yOffsetBase: 180)
+        spawnUnits(kind: .sword, count: initialSwordCount, yOffsetBase: 180)
+        spawnUnits(kind: .spear, count: initialSpearCount, yOffsetBase: 180)
+        spawnUnits(kind: .axe, count: initialAxeCount, yOffsetBase: 180)
+        spawnUnits(kind: .bow, count: initialBowCount, yOffsetBase: 180)
+        spawnUnits(kind: .cure, count: initialCureCount, yOffsetBase: 180)
         
         return playerUnits
     }
@@ -839,50 +940,89 @@ private struct RTSUnit: Identifiable {
 
 private enum UnitKind {
     case worker
-    case soldier
+    case sword
+    case spear
+    case axe
+    case bow
+    case shield
+    case cure
+
+    var displayName: String {
+        switch self {
+        case .worker: return "Worker"
+        case .sword: return "Sword"
+        case .spear: return "Spear"
+        case .axe: return "Axe"
+        case .bow: return "Bow"
+        case .shield: return "Shield"
+        case .cure: return "Cure"
+        }
+    }
 
     var color: Color {
         switch self {
-        case .worker:
-            return .blue
-        case .soldier:
-            return .green
+        case .worker: return .blue
+        case .sword: return .red
+        case .spear: return .orange
+        case .axe: return .purple
+        case .bow: return .yellow
+        case .shield: return .gray
+        case .cure: return .pink
         }
     }
 
     var systemImage: String {
         switch self {
-        case .worker:
-            return "wrench.fill"
-        case .soldier:
-            return "target"
+        case .worker: return "wrench.fill"
+        case .sword: return "hand.raised.bended.fill"
+        case .spear: return "arrow.up.forward.circle.fill"
+        case .axe: return "scissors"
+        case .bow: return "scope"
+        case .shield: return "shield.fill"
+        case .cure: return "heart.fill"
         }
     }
 
     var speed: CGFloat {
         switch self {
-        case .worker:
-            return 2.1
-        case .soldier:
-            return 2.6
+        case .worker: return 2.1
+        case .sword: return 2.5
+        case .spear: return 2.4
+        case .axe: return 2.3
+        case .bow: return 2.6
+        case .shield: return 1.8
+        case .cure: return 2.2
         }
     }
 
     var maxHealth: Int {
         switch self {
-        case .worker:
-            return 18
-        case .soldier:
-            return 28
+        case .worker: return 18
+        case .sword: return 26
+        case .spear: return 24
+        case .axe: return 30
+        case .bow: return 18
+        case .shield: return 50
+        case .cure: return 20
         }
     }
 
     var attackDamage: Int {
         switch self {
-        case .worker:
-            return 0
-        case .soldier:
-            return 2
+        case .worker: return 0
+        case .sword: return 3
+        case .spear: return 3
+        case .axe: return 4
+        case .bow: return 2
+        case .shield: return 0
+        case .cure: return 0
+        }
+    }
+
+    var attackRange: CGFloat {
+        switch self {
+        case .bow: return 120.0
+        default: return 42.0
         }
     }
 }
