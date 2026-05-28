@@ -251,7 +251,7 @@ struct ContentView: View {
                     .scaleEffect(scale)
                     .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
 
-                gameObjects(scale: scale, xOffset: xOffset, yOffset: yOffset)
+                gameObjects(scale: scale, xOffset: xOffset, yOffset: yOffset, viewSize: proxy.size)
             }
             .contentShape(Rectangle())
             .gesture(
@@ -309,7 +309,7 @@ struct ContentView: View {
         .stroke(Color.white.opacity(0.06), lineWidth: 1)
     }
 
-    private func gameObjects(scale: CGFloat, xOffset: CGFloat, yOffset: CGFloat) -> some View {
+    private func gameObjects(scale: CGFloat, xOffset: CGFloat, yOffset: CGFloat, viewSize: CGSize) -> some View {
         ZStack {
             structure(
                 title: "HQ",
@@ -357,6 +357,19 @@ struct ContentView: View {
                         toggleSelection(for: unit.id)
                     }
             }
+
+            if let productionPosition = selectedProductionPosition {
+                productionMenu
+                    .position(
+                        productionMenuScreenPosition(
+                            for: productionPosition,
+                            scale: scale,
+                            xOffset: xOffset,
+                            yOffset: yOffset,
+                            viewSize: viewSize
+                        )
+                    )
+            }
         }
     }
 
@@ -373,47 +386,79 @@ struct ContentView: View {
     }
 
     private var commandBar: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 8) {
-                Button {
-                    selectedProductionSite = nil
-                    selectedUnitIDs = Set(units.map(\.id))
-                } label: {
-                    Label("All", systemImage: "scope")
-                }
-                .disabled(gameStatus != .playing)
-
-                Button {
-                    selectedUnitIDs.removeAll()
-                    selectedProductionSite = nil
-                } label: {
-                    Label("Clear", systemImage: "xmark.circle")
-                }
-                .disabled(gameStatus != .playing || (selectedUnitIDs.isEmpty && selectedProductionSite == nil))
-
-                Spacer()
+        HStack(spacing: 8) {
+            Button {
+                selectedProductionSite = nil
+                selectedUnitIDs = Set(units.map(\.id))
+            } label: {
+                Label("All", systemImage: "scope")
             }
-            .font(.system(size: 12, weight: .semibold))
-            .buttonStyle(.borderedProminent)
-            .controlSize(.small)
-            .padding(.horizontal, 10)
+            .disabled(gameStatus != .playing)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    trainButton(kind: .worker, cost: 25)
-                    trainButton(kind: .sword, cost: 35)
-                    trainButton(kind: .spear, cost: 35)
-                    trainButton(kind: .axe, cost: 35)
-                    trainButton(kind: .bow, cost: 45)
-                    trainButton(kind: .shield, cost: 30)
-                    trainButton(kind: .cure, cost: 40)
-                }
-                .padding(.horizontal, 10)
+            Button {
+                selectedUnitIDs.removeAll()
+                selectedProductionSite = nil
+            } label: {
+                Label("Clear", systemImage: "xmark.circle")
             }
+            .disabled(gameStatus != .playing || (selectedUnitIDs.isEmpty && selectedProductionSite == nil))
+
+            Spacer()
         }
-        .padding(.vertical, 10)
+        .font(.system(size: 12, weight: .semibold))
+        .buttonStyle(.borderedProminent)
+        .controlSize(.small)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
         .frame(maxWidth: .infinity)
         .background(Color(red: 0.12, green: 0.16, blue: 0.13))
+    }
+
+    private func productionMenuScreenPosition(
+        for productionPosition: CGPoint,
+        scale: CGFloat,
+        xOffset: CGFloat,
+        yOffset: CGFloat,
+        viewSize: CGSize
+    ) -> CGPoint {
+        let menuWidth: CGFloat = 250
+        let menuHeight: CGFloat = 100
+        let halfWidth = menuWidth / 2
+        let halfHeight = menuHeight / 2
+        let verticalOffset: CGFloat = 92 * scale
+        let sitePoint = screenPoint(productionPosition, scale: scale, xOffset: xOffset, yOffset: yOffset)
+        let preferredY = sitePoint.y + verticalOffset
+        let fallbackY = sitePoint.y - verticalOffset
+        let unclampedY = preferredY + halfHeight <= viewSize.height ? preferredY : fallbackY
+
+        return CGPoint(
+            x: min(max(sitePoint.x, halfWidth), viewSize.width - halfWidth),
+            y: min(max(unclampedY, halfHeight), viewSize.height - halfHeight)
+        )
+    }
+
+    private var productionMenu: some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 6) {
+                trainButton(kind: .worker, cost: 25)
+                trainButton(kind: .sword, cost: 35)
+                trainButton(kind: .spear, cost: 35)
+                trainButton(kind: .axe, cost: 35)
+            }
+
+            HStack(spacing: 6) {
+                trainButton(kind: .bow, cost: 45)
+                trainButton(kind: .shield, cost: 30)
+                trainButton(kind: .cure, cost: 40)
+            }
+        }
+        .padding(8)
+        .frame(width: 250, height: 100)
+        .background(Color.black.opacity(0.48), in: RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.white.opacity(0.14), lineWidth: 1)
+        )
     }
 
     @ViewBuilder
@@ -423,14 +468,17 @@ struct ContentView: View {
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: kind.systemImage)
-                Text("\(kind.displayName) \(cost)")
+                    .font(.system(size: 10, weight: .bold))
+                Text("\(cost)")
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
             }
+            .frame(width: 34, height: 22)
         }
         .disabled(gameStatus != .playing || minerals < cost || selectedProductionSite == nil)
         .buttonStyle(.borderedProminent)
         .tint(kind.color)
-        .controlSize(.small)
-        .font(.system(size: 11, weight: .semibold))
+        .controlSize(.mini)
+        .accessibilityLabel("Train \(kind.displayName)")
     }
 
     private var resultOverlay: some View {
