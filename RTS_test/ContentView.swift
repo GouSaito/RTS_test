@@ -19,18 +19,10 @@ struct ContentView: View {
     @State private var enemySpawnTicks = 0
     @State private var gameStatus: GameStatus = .title
 
-    private static let playerBasePosition = CGPoint(x: 72, y: 72)
-    private static let campPosition = CGPoint(x: 168, y: 78)
-    private static let mineralPosition = CGPoint(x: 278, y: 130)
-    private static let enemyBasePosition = CGPoint(x: 314, y: 410)
-
     private static let stages: [StageDefinition] = [
         StageDefinition(
-            title: "Stage 1：三すくみの遭遇戦",
+            title: "Stage 1：遭遇戦",
             initialSwordCount: 1,
-            initialSpearCount: 1,
-            initialAxeCount: 1,
-            initialEnemyCount: 2
         ),
         StageDefinition(
             title: "Stage 2：遠距離射撃の試練",
@@ -62,7 +54,26 @@ struct ContentView: View {
             enemySpawnIntervalTicks: 200
         ),
         StageDefinition(
+            title: "Stage 5：横断強襲戦",
+            playerBasePosition: CGPoint(x: 60, y: 400),
+            campPosition: CGPoint(x: 60, y: 260),
+            mineralBasePosition: CGPoint(x: 195, y: 480),
+            enemyBasePosition: CGPoint(x: 330, y: 100),
+            oreCount: 2,
+            initialMinerals: 80,
+            playerBaseHealth: 120,
+            initialWorkerCount: 1,
+            initialSwordCount: 1,
+            initialSpearCount: 1,
+            initialBowCount: 1,
+            initialShieldCount: 1,
+            enemyBaseHealth: 180,
+            initialEnemyCount: 4,
+            enemySpawnIntervalTicks: 180
+        ),
+        StageDefinition(
             title: "Final Stage：城砦攻略の総力戦",
+            campPosition: CGPoint(x: 168, y: 78),
             oreCount: 3,
             initialMinerals: 150,
             playerBaseHealth: 150,
@@ -83,11 +94,11 @@ struct ContentView: View {
     }
 
     private var playerBasePosition: CGPoint {
-        Self.playerBasePosition
+        currentStage.playerBasePosition
     }
 
-    private var campPosition: CGPoint {
-        Self.campPosition
+    private var campPosition: CGPoint? {
+        currentStage.campPosition
     }
 
     private var selectedProductionPosition: CGPoint? {
@@ -103,16 +114,17 @@ struct ContentView: View {
 
     private var mineralPositions: [CGPoint] {
         guard currentStage.oreCount > 0 else { return [] }
+        let base = currentStage.mineralBasePosition
         return (0..<currentStage.oreCount).map { i in
             CGPoint(
-                x: Self.mineralPosition.x - CGFloat(i * 46),
-                y: Self.mineralPosition.y + CGFloat(i * 12)
+                x: base.x - CGFloat(i * 46),
+                y: base.y + CGFloat(i * 12)
             )
         }
     }
 
     private var enemyBasePosition: CGPoint {
-        Self.enemyBasePosition
+        currentStage.enemyBasePosition
     }
 
     private var isFinalStage: Bool {
@@ -321,15 +333,17 @@ struct ContentView: View {
             )
             .position(screenPoint(playerBasePosition, scale: scale, xOffset: xOffset, yOffset: yOffset))
 
-            structure(
-                title: "Camp",
-                systemImage: "tent.fill",
-                color: .green,
-                health: 100,
-                maxHealth: 100,
-                isSelected: selectedProductionSite == .camp
-            )
-            .position(screenPoint(campPosition, scale: scale, xOffset: xOffset, yOffset: yOffset))
+            if let campPos = campPosition {
+                structure(
+                    title: "Camp",
+                    systemImage: "tent.fill",
+                    color: .green,
+                    health: 100,
+                    maxHealth: 100,
+                    isSelected: selectedProductionSite == .camp
+                )
+                .position(screenPoint(campPos, scale: scale, xOffset: xOffset, yOffset: yOffset))
+            }
 
             ForEach(0..<mineralPositions.count, id: \.self) { index in
                 resourceNode
@@ -655,7 +669,7 @@ struct ContentView: View {
             return
         }
 
-        if boardPoint.distance(to: campPosition) < 44 {
+        if let campPos = campPosition, boardPoint.distance(to: campPos) < 44 {
             selectProductionSite(.camp)
             return
         }
@@ -949,6 +963,12 @@ struct ContentView: View {
 
 private struct StageDefinition {
     let title: String
+
+    var playerBasePosition: CGPoint = CGPoint(x: 72, y: 72)
+    var campPosition: CGPoint? = nil
+    var mineralBasePosition: CGPoint = CGPoint(x: 278, y: 130)
+    var enemyBasePosition: CGPoint = CGPoint(x: 314, y: 410)
+
     var oreCount: Int = 0
     var initialMinerals: Int = 0
     var playerBaseHealth: Int = 100
@@ -965,6 +985,10 @@ private struct StageDefinition {
 
     init(
         title: String,
+        playerBasePosition: CGPoint = CGPoint(x: 72, y: 72),
+        campPosition: CGPoint? = nil,
+        mineralBasePosition: CGPoint = CGPoint(x: 278, y: 130),
+        enemyBasePosition: CGPoint = CGPoint(x: 314, y: 410),
         oreCount: Int = 0,
         initialMinerals: Int = 0,
         playerBaseHealth: Int = 100,
@@ -980,6 +1004,10 @@ private struct StageDefinition {
         enemySpawnIntervalTicks: Int = 99999
     ) {
         self.title = title
+        self.playerBasePosition = playerBasePosition
+        self.campPosition = campPosition
+        self.mineralBasePosition = mineralBasePosition
+        self.enemyBasePosition = enemyBasePosition
         self.oreCount = oreCount
         self.initialMinerals = initialMinerals
         self.playerBaseHealth = playerBaseHealth
