@@ -21,8 +21,90 @@ struct ContentView: View {
 
     private static let stages: [StageDefinition] = [
         StageDefinition(
-            title: "Stage 1：遭遇戦",
+            title: "Stage test：テスト",
+            playerBasePosition: CGPoint(x: 60, y: 100),
+            campPosition: CGPoint(x: 60, y: 260),
+            mineralBasePosition: CGPoint(x: 195, y: 480),
+            enemyBasePosition: CGPoint(x: 330, y: 400),
+            oreCount: 2,
+            initialMinerals: 80,
+            playerBaseHealth: 120,
+            enemyBaseHealth: 180,
+            enemySpawnIntervalTicks: 180,
+            playerUnitPlacements: [
+                UnitPlacement(kind: .worker, position: CGPoint(x: 80, y: 220)),
+                UnitPlacement(kind: .shield, position: CGPoint(x: 100, y: 300)),
+                UnitPlacement(kind: .sword, position: CGPoint(x: 140, y: 300)),
+                UnitPlacement(kind: .spear, position: CGPoint(x: 120, y: 340)),
+                UnitPlacement(kind: .bow, position: CGPoint(x: 60, y: 340)),
+            ],
+            enemyUnitPlacements: [
+                UnitPlacement(kind: .sword, position: CGPoint(x: 300, y: 340)),
+                UnitPlacement(kind: .axe, position: CGPoint(x: 340, y: 340)),
+                UnitPlacement(kind: .spear, position: CGPoint(x: 280, y: 300)),
+                UnitPlacement(kind: .bow, position: CGPoint(x: 360, y: 300)),
+            ]
+        ),
+        StageDefinition(
+            title: "Stage 1：勝利条件の理解",
             initialSwordCount: 1,
+            enemySpawnIntervalTicks: 110
+        ),
+        StageDefinition(
+            title: "Stage 2：戦闘の理解",
+            initialSwordCount: 2,
+            initialEnemyCount: 1,
+            enemySpawnIntervalTicks: 100
+        ),
+        StageDefinition(
+            title: "Stage 3：生産の理解",
+            initialMinerals: 40,
+            enemySpawnIntervalTicks: 100
+        ),
+        StageDefinition(
+            title: "Stage 4：キャンプの理解",
+            campPosition: CGPoint(x: 60, y: 260),
+            initialMinerals: 40,
+            initialEnemyCount: 1,
+            enemySpawnIntervalTicks: 40
+        ),
+        StageDefinition(
+            title: "Stage 5：鉱山の理解",
+            oreCount: 1,
+            initialWorkerCount: 1,
+            enemySpawnIntervalTicks: 40
+        ),
+        StageDefinition(
+            title: "Stage 6：弓兵の理解",
+            initialBowCount: 1,
+            initialEnemyCount: 3,
+            enemySpawnIntervalTicks: 40
+        ),
+        StageDefinition(
+            title: "Stage 7：盾兵の理解",
+            initialBowCount: 1,
+            initialShieldCount: 1,
+            initialEnemyCount: 5,
+            enemySpawnIntervalTicks: 40
+        ),
+        StageDefinition(
+            title: "Stage 8：三すくみの理解",
+            enemySpawnIntervalTicks: 240,
+            playerUnitPlacements: [
+                UnitPlacement(kind: .sword, position: CGPoint(x: 140, y: 300)),
+                UnitPlacement(kind: .spear, position: CGPoint(x: 120, y: 340)),
+                UnitPlacement(kind: .axe, position: CGPoint(x: 60, y: 340)),
+            ],
+            enemyUnitPlacements: [
+                UnitPlacement(kind: .sword, position: CGPoint(x: 300, y: 340)),
+                UnitPlacement(kind: .axe, position: CGPoint(x: 340, y: 340)),
+                UnitPlacement(kind: .spear, position: CGPoint(x: 280, y: 300)),
+            ],
+        ),
+        StageDefinition(
+            title: "Stage ：",
+            initialSwordCount: 1,
+            enemySpawnIntervalTicks: 240
         ),
         StageDefinition(
             title: "Stage 2：遠距離射撃の試練",
@@ -192,7 +274,7 @@ struct ContentView: View {
 
                                     HStack(spacing: 10) {
                                         Label("\(stage.initialMinerals)", systemImage: "diamond.fill")
-                                        Label("\(stage.initialWorkerCount)", systemImage: "wrench.fill")
+                                        Label("\(stage.effectiveWorkerCount)", systemImage: "wrench.fill")
                                         Label("\(stage.totalInitialCombatUnits)", systemImage: "person.fill")
                                         Label("\(stage.oreCount)", systemImage: "sparkles")
                                     }
@@ -961,6 +1043,11 @@ struct ContentView: View {
     }
 }
 
+private struct UnitPlacement {
+    let kind: UnitKind
+    let position: CGPoint
+}
+
 private struct StageDefinition {
     let title: String
 
@@ -972,6 +1059,12 @@ private struct StageDefinition {
     var oreCount: Int = 0
     var initialMinerals: Int = 0
     var playerBaseHealth: Int = 100
+    var enemyBaseHealth: Int = 100
+    var enemySpawnIntervalTicks: Int = 99999
+
+    var playerUnitPlacements: [UnitPlacement]? = nil
+    var enemyUnitPlacements: [UnitPlacement]? = nil
+
     var initialWorkerCount: Int = 0
     var initialSwordCount: Int = 0
     var initialSpearCount: Int = 0
@@ -979,9 +1072,7 @@ private struct StageDefinition {
     var initialBowCount: Int = 0
     var initialShieldCount: Int = 0
     var initialCureCount: Int = 0
-    var enemyBaseHealth: Int = 100
     var initialEnemyCount: Int = 0
-    var enemySpawnIntervalTicks: Int = 99999
 
     init(
         title: String,
@@ -1001,7 +1092,9 @@ private struct StageDefinition {
         initialCureCount: Int = 0,
         enemyBaseHealth: Int = 100,
         initialEnemyCount: Int = 0,
-        enemySpawnIntervalTicks: Int = 99999
+        enemySpawnIntervalTicks: Int = 99999,
+        playerUnitPlacements: [UnitPlacement]? = nil,
+        enemyUnitPlacements: [UnitPlacement]? = nil
     ) {
         self.title = title
         self.playerBasePosition = playerBasePosition
@@ -1021,14 +1114,31 @@ private struct StageDefinition {
         self.enemyBaseHealth = enemyBaseHealth
         self.initialEnemyCount = initialEnemyCount
         self.enemySpawnIntervalTicks = enemySpawnIntervalTicks
+        self.playerUnitPlacements = playerUnitPlacements
+        self.enemyUnitPlacements = enemyUnitPlacements
     }
 
-    // 計算時のタイムアウトを避けるための合算算出プロパティ
     var totalInitialCombatUnits: Int {
-        initialSwordCount + initialSpearCount + initialAxeCount + initialBowCount + initialShieldCount + initialCureCount
+        if let placements = playerUnitPlacements {
+            return placements.filter { $0.kind != .worker }.count
+        }
+        return initialSwordCount + initialSpearCount + initialAxeCount + initialBowCount + initialShieldCount + initialCureCount
+    }
+
+    var effectiveWorkerCount: Int {
+        if let placements = playerUnitPlacements {
+            return placements.filter { $0.kind == .worker }.count
+        }
+        return initialWorkerCount
     }
 
     func makeEnemyUnits(target: CGPoint, enemyBasePosition: CGPoint) -> [RTSUnit] {
+        if let placements = enemyUnitPlacements {
+            return placements.map { placement in
+                RTSUnit(kind: placement.kind, position: placement.position, target: target)
+            }
+        }
+
         let enemyPool: [UnitKind] = [.sword, .spear, .axe, .bow, .shield]
         return (0..<initialEnemyCount).map { index in
             let column = index % 3 - 1
@@ -1048,8 +1158,13 @@ private struct StageDefinition {
     }
 
     func makePlayerUnits(playerBasePosition: CGPoint) -> [RTSUnit] {
+        if let placements = playerUnitPlacements {
+            return placements.map { placement in
+                RTSUnit(kind: placement.kind, position: placement.position)
+            }
+        }
+
         var playerUnits: [RTSUnit] = []
-        
         var index = 0
         func spawnUnits(kind: UnitKind, count: Int, yOffsetBase: CGFloat) {
             for _ in 0..<count {
@@ -1072,7 +1187,7 @@ private struct StageDefinition {
         spawnUnits(kind: .axe, count: initialAxeCount, yOffsetBase: 180)
         spawnUnits(kind: .bow, count: initialBowCount, yOffsetBase: 180)
         spawnUnits(kind: .cure, count: initialCureCount, yOffsetBase: 180)
-        
+
         return playerUnits
     }
 }
