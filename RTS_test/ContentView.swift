@@ -817,7 +817,6 @@ struct ContentView: View {
     private func selectAndStartStage(index: Int) {
         stageIndex = index
         resetStage()
-        gameStatus = .playing
     }
 
     private func resetStage() {
@@ -832,13 +831,13 @@ struct ContentView: View {
         selectedUnitIDs = []
         selectedProductionSite = nil
         enemySpawnTicks = 0
+        gameStatus = .playing
     }
 
     private func advanceStage() {
         guard stageIndex < Self.stages.count - 1 else { return }
         stageIndex += 1
         resetStage()
-        gameStatus = .playing
     }
 
     private func runGameLoop() async {
