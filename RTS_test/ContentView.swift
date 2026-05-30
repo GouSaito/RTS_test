@@ -30,7 +30,8 @@ struct ContentView: View {
             initialMinerals: 80,
             playerBaseHealth: 120,
             enemyBaseHealth: 180,
-            enemySpawnIntervalTicks: 180,
+            enemySpawnIntervalTicks: 30,
+            enemySpawnPool: [.spear,],
             playerUnitPlacements: [
                 UnitPlacement(kind: .worker, position: CGPoint(x: 80, y: 220)),
                 UnitPlacement(kind: .shield, position: CGPoint(x: 100, y: 300)),
@@ -993,9 +994,7 @@ struct ContentView: View {
         enemySpawnTicks = 0
         let spawnOffset = CGFloat((enemyUnits.count % 3) * 20 - 20)
         
-        // 敵はランダムな戦闘職が湧く
-        let enemyPool: [UnitKind] = [.sword, .spear, .axe, .bow, .shield]
-        let chosenEnemy = enemyPool.randomElement() ?? .sword
+        let chosenEnemy = currentStage.enemySpawnPool.randomElement() ?? .sword
         
         enemyUnits.append(
             RTSUnit(
@@ -1060,6 +1059,7 @@ private struct StageDefinition {
     var playerBaseHealth: Int = 100
     var enemyBaseHealth: Int = 100
     var enemySpawnIntervalTicks: Int = 99999
+    var enemySpawnPool: [UnitKind] = [.sword]
 
     var playerUnitPlacements: [UnitPlacement]? = nil
     var enemyUnitPlacements: [UnitPlacement]? = nil
@@ -1092,6 +1092,7 @@ private struct StageDefinition {
         enemyBaseHealth: Int = 100,
         initialEnemyCount: Int = 0,
         enemySpawnIntervalTicks: Int = 99999,
+        enemySpawnPool: [UnitKind] = [.sword],
         playerUnitPlacements: [UnitPlacement]? = nil,
         enemyUnitPlacements: [UnitPlacement]? = nil
     ) {
@@ -1113,6 +1114,7 @@ private struct StageDefinition {
         self.enemyBaseHealth = enemyBaseHealth
         self.initialEnemyCount = initialEnemyCount
         self.enemySpawnIntervalTicks = enemySpawnIntervalTicks
+        self.enemySpawnPool = enemySpawnPool
         self.playerUnitPlacements = playerUnitPlacements
         self.enemyUnitPlacements = enemyUnitPlacements
     }
@@ -1138,7 +1140,6 @@ private struct StageDefinition {
             }
         }
 
-        let enemyPool: [UnitKind] = [.sword, .spear, .axe, .bow, .shield]
         return (0..<initialEnemyCount).map { index in
             let column = index % 3 - 1
             let row = index / 3
@@ -1147,7 +1148,7 @@ private struct StageDefinition {
                 y: enemyBasePosition.y - 40 - CGFloat(row * 24)
             )
 
-            let kind = enemyPool[index % enemyPool.count]
+            let kind = enemySpawnPool[index % enemySpawnPool.count]
             return RTSUnit(
                 kind: kind,
                 position: position,
