@@ -49,7 +49,7 @@ struct ContentView: View {
         StageDefinition(
             title: "Stage 1：勝利条件の理解",
             initialSwordCount: 1,
-            enemySpawnIntervalTicks: 110
+            enemySpawnIntervalTicks: 150
         ),
         StageDefinition(
             title: "Stage 2：戦闘の理解",
@@ -842,9 +842,24 @@ struct ContentView: View {
     }
 
     private func runGameLoop() async {
+        let tickDuration: Duration = .milliseconds(90)
+        var lastTime = ContinuousClock.now
+        var accumulator: Duration = .zero
+
         while !Task.isCancelled {
-            try? await Task.sleep(for: .milliseconds(90))
-            updateSimulation()
+            try? await Task.sleep(for: .milliseconds(16))
+            let now = ContinuousClock.now
+            accumulator += now - lastTime
+            lastTime = now
+
+            if accumulator > .seconds(1) {
+                accumulator = .seconds(1)
+            }
+
+            while accumulator >= tickDuration {
+                updateSimulation()
+                accumulator -= tickDuration
+            }
         }
     }
 
