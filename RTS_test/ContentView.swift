@@ -53,60 +53,89 @@ struct ContentView: View {
             ]
         ),
         StageDefinition(
-            title: "Stage 1：勝利条件の理解",
+            title: "Stage 1：勝利条件の理解", //fix
             initialSwordCount: 1,
             enemySpawnIntervalTicks: 150
         ),
         StageDefinition(
-            title: "Stage 2：戦闘の理解",
+            title: "Stage 2：戦闘の理解", //fix
             initialSwordCount: 2,
             initialEnemyCount: 1,
             enemySpawnIntervalTicks: 100
         ),
         StageDefinition(
-            title: "Stage 3：生産の理解",
+            title: "Stage 3：生産の理解", //fix
             initialMinerals: 40,
+            enemySpawnIntervalTicks: 220
+        ),
+        StageDefinition(
+            title: "Stage 4：キャンプの理解", //fix
+            campPosition: CGPoint(x: 250, y: 260),
+            initialMinerals: 40,
+            enemySpawnIntervalTicks: 120
+        ),
+        StageDefinition(
+            title: "Stage 5：鉱山の理解", //fix
+            oreCount: 1,
+            initialMinerals: 30,
+            initialWorkerCount: 1,
+            initialSwordCount: 1,
+            initialEnemyCount: 1,
+            enemySpawnIntervalTicks: 330
+        ),
+        StageDefinition(
+            title: "Stage 6：弓兵の理解", //fix
+            initialBowCount: 1,
+            initialEnemyCount: 3,
             enemySpawnIntervalTicks: 100
         ),
         StageDefinition(
-            title: "Stage 4：キャンプの理解",
-            campPosition: CGPoint(x: 250, y: 260),
-            initialMinerals: 40,
-            enemySpawnIntervalTicks: 160
-        ),
-        StageDefinition(
-            title: "Stage 5：鉱山の理解",
-            oreCount: 1,
-            initialWorkerCount: 1,
-            initialSwordCount: 1,
-            enemySpawnIntervalTicks: 200
-        ),
-        StageDefinition(
-            title: "Stage 6：弓兵の理解",
-            initialBowCount: 1,
-            initialEnemyCount: 3,
-            enemySpawnIntervalTicks: 40
-        ),
-        StageDefinition(
-            title: "Stage 7：盾兵の理解",
+            title: "Stage 7：盾兵の理解", //fix
             initialBowCount: 1,
             initialShieldCount: 1,
             initialEnemyCount: 5,
-            enemySpawnIntervalTicks: 40
+            enemySpawnIntervalTicks: 200
         ),
         StageDefinition(
-            title: "Stage 8：三すくみの理解",
+            title: "Stage 8：三すくみの理解", //fix
             enemySpawnIntervalTicks: 240,
             playerUnitPlacements: [
-                UnitPlacement(kind: .sword, position: CGPoint(x: 140, y: 300)),
-                UnitPlacement(kind: .spear, position: CGPoint(x: 120, y: 340)),
-                UnitPlacement(kind: .axe, position: CGPoint(x: 60, y: 340)),
+                UnitPlacement(kind: .spear, position: CGPoint(x: 300, y: 150)),
+                UnitPlacement(kind: .sword, position: CGPoint(x: 200, y: 150)),
+                UnitPlacement(kind: .axe, position: CGPoint(x: 100, y: 150)),
             ],
             enemyUnitPlacements: [
-                UnitPlacement(kind: .sword, position: CGPoint(x: 300, y: 340)),
-                UnitPlacement(kind: .axe, position: CGPoint(x: 340, y: 340)),
-                UnitPlacement(kind: .spear, position: CGPoint(x: 280, y: 300)),
+                UnitPlacement(kind: .sword, position: CGPoint(x: 300, y: 350)),
+                UnitPlacement(kind: .spear, position: CGPoint(x: 200, y: 350)),
+                UnitPlacement(kind: .axe, position: CGPoint(x: 100, y: 350)),
             ],
+        ),
+        StageDefinition(
+            title: "Stage 9：夜間戦闘",
+            isNight: false,
+            playerBasePosition: CGPoint(x: 50, y: 50),
+            campPosition: CGPoint(x: 100, y: 400),
+            mineralBasePosition: CGPoint(x: 300, y: 900),
+            enemyBasePosition: CGPoint(x: 650, y: 850),
+            oreCount: 2,
+            initialMinerals: 80,
+            playerBaseHealth: 120,
+            enemyBaseHealth: 180,
+            enemySpawnIntervalTicks: 30,
+            enemySpawnPool: [.spear,],
+            playerUnitPlacements: [
+                UnitPlacement(kind: .worker, position: CGPoint(x: 120, y: 350)),
+                UnitPlacement(kind: .shield, position: CGPoint(x: 160, y: 500)),
+                UnitPlacement(kind: .sword, position: CGPoint(x: 200, y: 500)),
+                UnitPlacement(kind: .spear, position: CGPoint(x: 180, y: 550)),
+                UnitPlacement(kind: .bow, position: CGPoint(x: 120, y: 550)),
+            ],
+            enemyUnitPlacements: [
+                UnitPlacement(kind: .sword, position: CGPoint(x: 600, y: 750)),
+                UnitPlacement(kind: .axe, position: CGPoint(x: 650, y: 750)),
+                UnitPlacement(kind: .spear, position: CGPoint(x: 580, y: 700)),
+                UnitPlacement(kind: .bow, position: CGPoint(x: 700, y: 700)),
+            ]
         ),
         StageDefinition(
             title: "Stage ：",
@@ -1430,7 +1459,7 @@ private enum UnitKind {
         case .spear: return 24
         case .axe: return 30
         case .bow: return 18
-        case .shield: return 50
+        case .shield: return 200
         case .cure: return 20
         }
     }
