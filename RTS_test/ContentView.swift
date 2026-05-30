@@ -395,8 +395,8 @@ struct ContentView: View {
         return ZStack {
             LinearGradient(
                 colors: [
-                    Color(red: 0.15, green: 0.26, blue: 0.16),
-                    Color(red: 0.11, green: 0.20, blue: 0.17)
+                    Color(red: 0.38, green: 0.48, blue: 0.32),
+                    Color(red: 0.33, green: 0.43, blue: 0.28)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -413,7 +413,7 @@ struct ContentView: View {
                 path.addLine(to: CGPoint(x: 0, y: mapH))
                 path.closeSubpath()
             }
-            .fill(Color(red: 0.19, green: 0.24, blue: 0.15).opacity(0.9))
+            .fill(Color(red: 0.35, green: 0.44, blue: 0.26).opacity(0.9))
 
             gridLines
         }
@@ -433,7 +433,7 @@ struct ContentView: View {
                 path.addLine(to: CGPoint(x: mapW, y: y))
             }
         }
-        .stroke(Color.white.opacity(0.06), lineWidth: 1)
+        .stroke(Color.white.opacity(0.1), lineWidth: 1)
     }
 
     private func gameObjects(scale: CGFloat, xOffset: CGFloat, yOffset: CGFloat, viewSize: CGSize) -> some View {
