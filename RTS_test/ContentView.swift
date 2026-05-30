@@ -24,20 +24,20 @@ struct ContentView: View {
 
     private static let stages: [StageDefinition] = [
         StageDefinition(
-            title: "Stage test：テスト",
+            title: "Stage test：テスト中",
             mapWidth: 780,
             mapHeight: 1040,
-            isNight: true,
+            isNight: false,
             playerBasePosition: CGPoint(x: 100, y: 150),
             campPosition: CGPoint(x: 100, y: 400),
             mineralBasePosition: CGPoint(x: 300, y: 900),
             enemyBasePosition: CGPoint(x: 650, y: 850),
             oreCount: 2,
-            initialMinerals: 80,
+            initialMinerals: 800,
             playerBaseHealth: 120,
             enemyBaseHealth: 180,
             enemySpawnIntervalTicks: 30,
-            enemySpawnPool: [.spear,],
+            enemySpawnPool: [.axe,],
             playerUnitPlacements: [
                 UnitPlacement(kind: .worker, position: CGPoint(x: 120, y: 350)),
                 UnitPlacement(kind: .shield, position: CGPoint(x: 160, y: 500)),
@@ -65,13 +65,13 @@ struct ContentView: View {
         ),
         StageDefinition(
             title: "Stage 3：生産の理解", //fix
-            initialMinerals: 40,
+            initialMinerals: 35,
             enemySpawnIntervalTicks: 220
         ),
         StageDefinition(
             title: "Stage 4：キャンプの理解", //fix
             campPosition: CGPoint(x: 250, y: 260),
-            initialMinerals: 40,
+            initialMinerals: 35,
             enemySpawnIntervalTicks: 120
         ),
         StageDefinition(
@@ -111,7 +111,7 @@ struct ContentView: View {
             ],
         ),
         StageDefinition(
-            title: "Stage 9：夜間戦闘",
+            title: "Stage 9：夜間戦闘（テスト中）",
             isNight: false,
             playerBasePosition: CGPoint(x: 50, y: 50),
             campPosition: CGPoint(x: 100, y: 400),
@@ -138,19 +138,19 @@ struct ContentView: View {
             ]
         ),
         StageDefinition(
-            title: "Stage ：",
+            title: "Stage ：（テスト中）",
             initialSwordCount: 1,
             enemySpawnIntervalTicks: 240
         ),
         StageDefinition(
-            title: "Stage 2：遠距離射撃の試練",
+            title: "Stage 2：遠距離射撃の試練（テスト中）",
             initialBowCount: 2,
             initialShieldCount: 1,
             initialEnemyCount: 3,
             enemySpawnIntervalTicks: 240
         ),
         StageDefinition(
-            title: "Stage 3：資源採掘と回復の護り",
+            title: "Stage 3：資源採掘と回復の護り（テスト中）",
             oreCount: 1,
             initialMinerals: 50,
             initialWorkerCount: 1,
@@ -161,7 +161,7 @@ struct ContentView: View {
             enemySpawnIntervalTicks: 300
         ),
         StageDefinition(
-            title: "Stage 4：挟撃突破作戦",
+            title: "Stage 4：挟撃突破作戦（テスト中）",
             oreCount: 2,
             initialMinerals: 100,
             initialWorkerCount: 2,
@@ -172,7 +172,7 @@ struct ContentView: View {
             enemySpawnIntervalTicks: 200
         ),
         StageDefinition(
-            title: "Stage 5：横断強襲戦",
+            title: "Stage 5：横断強襲戦（テスト中）",
             playerBasePosition: CGPoint(x: 60, y: 400),
             campPosition: CGPoint(x: 60, y: 260),
             mineralBasePosition: CGPoint(x: 195, y: 480),
@@ -190,7 +190,7 @@ struct ContentView: View {
             enemySpawnIntervalTicks: 180
         ),
         StageDefinition(
-            title: "Final Stage：城砦攻略の総力戦",
+            title: "Final Stage：城砦攻略の総力戦（テスト中）",
             campPosition: CGPoint(x: 168, y: 78),
             oreCount: 3,
             initialMinerals: 150,
@@ -615,7 +615,7 @@ struct ContentView: View {
                 trainButton(kind: .worker, cost: 25)
                 trainButton(kind: .sword, cost: 35)
                 trainButton(kind: .spear, cost: 35)
-                trainButton(kind: .axe, cost: 35)
+                trainButton(kind: .axe, cost: 38)
             }
 
             HStack(spacing: 6) {
@@ -1005,7 +1005,7 @@ struct ContentView: View {
         var multiplier: Double = 1.0
         switch (attacker.kind, defender.kind) {
         case (.sword, .axe):
-            multiplier = 1.5
+            multiplier = 2.0
         case (.spear, .sword):
             multiplier = 1.5
         case (.axe, .spear):
@@ -1482,7 +1482,7 @@ private enum UnitKind {
         case .bow: return 2
         case .shield: return 0
         case .cure: return 0
-        case .scout: return 1
+        case .scout: return 0
         }
     }
 
