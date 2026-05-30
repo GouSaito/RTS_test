@@ -18,14 +18,19 @@ struct ContentView: View {
     @State private var selectedProductionSite: ProductionSite?
     @State private var enemySpawnTicks = 0
     @State private var gameStatus: GameStatus = .title
+    @State private var cameraOffset = CGPoint.zero
+    @State private var dragStartOffset = CGPoint.zero
+    @State private var isDragging = false
 
     private static let stages: [StageDefinition] = [
         StageDefinition(
             title: "Stage test：テスト",
-            playerBasePosition: CGPoint(x: 60, y: 100),
-            campPosition: CGPoint(x: 60, y: 260),
-            mineralBasePosition: CGPoint(x: 195, y: 480),
-            enemyBasePosition: CGPoint(x: 330, y: 400),
+            mapWidth: 780,
+            mapHeight: 1040,
+            playerBasePosition: CGPoint(x: 100, y: 150),
+            campPosition: CGPoint(x: 100, y: 400),
+            mineralBasePosition: CGPoint(x: 300, y: 900),
+            enemyBasePosition: CGPoint(x: 650, y: 850),
             oreCount: 2,
             initialMinerals: 80,
             playerBaseHealth: 120,
@@ -33,17 +38,17 @@ struct ContentView: View {
             enemySpawnIntervalTicks: 30,
             enemySpawnPool: [.spear,],
             playerUnitPlacements: [
-                UnitPlacement(kind: .worker, position: CGPoint(x: 80, y: 220)),
-                UnitPlacement(kind: .shield, position: CGPoint(x: 100, y: 300)),
-                UnitPlacement(kind: .sword, position: CGPoint(x: 140, y: 300)),
-                UnitPlacement(kind: .spear, position: CGPoint(x: 120, y: 340)),
-                UnitPlacement(kind: .bow, position: CGPoint(x: 60, y: 340)),
+                UnitPlacement(kind: .worker, position: CGPoint(x: 120, y: 350)),
+                UnitPlacement(kind: .shield, position: CGPoint(x: 160, y: 500)),
+                UnitPlacement(kind: .sword, position: CGPoint(x: 200, y: 500)),
+                UnitPlacement(kind: .spear, position: CGPoint(x: 180, y: 550)),
+                UnitPlacement(kind: .bow, position: CGPoint(x: 120, y: 550)),
             ],
             enemyUnitPlacements: [
-                UnitPlacement(kind: .sword, position: CGPoint(x: 300, y: 340)),
-                UnitPlacement(kind: .axe, position: CGPoint(x: 340, y: 340)),
-                UnitPlacement(kind: .spear, position: CGPoint(x: 280, y: 300)),
-                UnitPlacement(kind: .bow, position: CGPoint(x: 360, y: 300)),
+                UnitPlacement(kind: .sword, position: CGPoint(x: 600, y: 750)),
+                UnitPlacement(kind: .axe, position: CGPoint(x: 650, y: 750)),
+                UnitPlacement(kind: .spear, position: CGPoint(x: 580, y: 700)),
+                UnitPlacement(kind: .bow, position: CGPoint(x: 700, y: 700)),
             ]
         ),
         StageDefinition(
@@ -336,31 +341,58 @@ struct ContentView: View {
             let scale = min(proxy.size.width / 390, proxy.size.height / 520)
             let xOffset = (proxy.size.width - 390 * scale) / 2
             let yOffset = (proxy.size.height - 520 * scale) / 2
+            let mapW = currentStage.mapWidth
+            let mapH = currentStage.mapHeight
 
             ZStack {
                 terrain
-                    .frame(width: 390, height: 520)
+                    .frame(width: mapW, height: mapH)
                     .scaleEffect(scale)
-                    .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
+                    .position(screenPoint(
+                        CGPoint(x: mapW / 2, y: mapH / 2),
+                        scale: scale, xOffset: xOffset, yOffset: yOffset
+                    ))
 
                 gameObjects(scale: scale, xOffset: xOffset, yOffset: yOffset, viewSize: proxy.size)
             }
+            .clipped()
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        let moved = abs(value.translation.width) > 8 || abs(value.translation.height) > 8
+                        if moved && !isDragging {
+                            isDragging = true
+                            dragStartOffset = cameraOffset
+                        }
+                        if isDragging {
+                            let maxX = max(mapW - 390, 0)
+                            let maxY = max(mapH - 520, 0)
+                            cameraOffset = CGPoint(
+                                x: min(max(dragStartOffset.x - value.translation.width / scale, 0), maxX),
+                                y: min(max(dragStartOffset.y - value.translation.height / scale, 0), maxY)
+                            )
+                        }
+                    }
                     .onEnded { value in
-                        let boardPoint = CGPoint(
-                            x: (value.location.x - xOffset) / scale,
-                            y: (value.location.y - yOffset) / scale
-                        )
-                        handleTap(at: boardPoint)
+                        if !isDragging {
+                            let boardPoint = CGPoint(
+                                x: (value.location.x - xOffset) / scale + cameraOffset.x,
+                                y: (value.location.y - yOffset) / scale + cameraOffset.y
+                            )
+                            handleTap(at: boardPoint)
+                        }
+                        isDragging = false
                     }
             )
         }
     }
 
     private var terrain: some View {
-        ZStack {
+        let mapW = currentStage.mapWidth
+        let mapH = currentStage.mapHeight
+
+        return ZStack {
             LinearGradient(
                 colors: [
                     Color(red: 0.15, green: 0.26, blue: 0.16),
@@ -371,14 +403,14 @@ struct ContentView: View {
             )
 
             Path { path in
-                path.move(to: CGPoint(x: 0, y: 340))
+                path.move(to: CGPoint(x: 0, y: mapH * 0.654))
                 path.addCurve(
-                    to: CGPoint(x: 390, y: 286),
-                    control1: CGPoint(x: 110, y: 300),
-                    control2: CGPoint(x: 230, y: 390)
+                    to: CGPoint(x: mapW, y: mapH * 0.55),
+                    control1: CGPoint(x: mapW * 0.282, y: mapH * 0.577),
+                    control2: CGPoint(x: mapW * 0.59, y: mapH * 0.75)
                 )
-                path.addLine(to: CGPoint(x: 390, y: 520))
-                path.addLine(to: CGPoint(x: 0, y: 520))
+                path.addLine(to: CGPoint(x: mapW, y: mapH))
+                path.addLine(to: CGPoint(x: 0, y: mapH))
                 path.closeSubpath()
             }
             .fill(Color(red: 0.19, green: 0.24, blue: 0.15).opacity(0.9))
@@ -388,14 +420,17 @@ struct ContentView: View {
     }
 
     private var gridLines: some View {
-        Path { path in
-            stride(from: 0, through: 390, by: 39).forEach { x in
+        let mapW = currentStage.mapWidth
+        let mapH = currentStage.mapHeight
+
+        return Path { path in
+            stride(from: 0, through: mapW, by: 39).forEach { x in
                 path.move(to: CGPoint(x: x, y: 0))
-                path.addLine(to: CGPoint(x: x, y: 520))
+                path.addLine(to: CGPoint(x: x, y: mapH))
             }
-            stride(from: 0, through: 520, by: 40).forEach { y in
+            stride(from: 0, through: mapH, by: 40).forEach { y in
                 path.move(to: CGPoint(x: 0, y: y))
-                path.addLine(to: CGPoint(x: 390, y: y))
+                path.addLine(to: CGPoint(x: mapW, y: y))
             }
         }
         .stroke(Color.white.opacity(0.06), lineWidth: 1)
@@ -760,8 +795,10 @@ struct ContentView: View {
 
     private func handleTap(at point: CGPoint) {
         let boardPoint = point
+        let mapW = currentStage.mapWidth
+        let mapH = currentStage.mapHeight
         guard gameStatus == .playing else { return }
-        guard boardPoint.x >= 0, boardPoint.x <= 390, boardPoint.y >= 0, boardPoint.y <= 520 else { return }
+        guard boardPoint.x >= 0, boardPoint.x <= mapW, boardPoint.y >= 0, boardPoint.y <= mapH else { return }
 
         if boardPoint.distance(to: playerBasePosition) < 44 {
             selectProductionSite(.base)
@@ -779,8 +816,8 @@ struct ContentView: View {
         for index in units.indices where selectedUnitIDs.contains(units[index].id) {
             let offset = formationOffset(for: index)
             units[index].target = CGPoint(
-                x: min(max(boardPoint.x + offset.width, 18), 372),
-                y: min(max(boardPoint.y + offset.height, 18), 502)
+                x: min(max(boardPoint.x + offset.width, 18), mapW - 18),
+                y: min(max(boardPoint.y + offset.height, 18), mapH - 18)
             )
         }
     }
@@ -826,8 +863,8 @@ struct ContentView: View {
         let offset = offsets[spawnIndex]
 
         return CGPoint(
-            x: min(max(position.x + offset.width, 18), 372),
-            y: min(max(position.y + offset.height, 18), 502)
+            x: min(max(position.x + offset.width, 18), currentStage.mapWidth - 18),
+            y: min(max(position.y + offset.height, 18), currentStage.mapHeight - 18)
         )
     }
 
@@ -848,6 +885,8 @@ struct ContentView: View {
         selectedUnitIDs = []
         selectedProductionSite = nil
         enemySpawnTicks = 0
+        cameraOffset = .zero
+        isDragging = false
         gameStatus = .playing
     }
 
@@ -1087,7 +1126,10 @@ struct ContentView: View {
         xOffset: CGFloat,
         yOffset: CGFloat
     ) -> CGPoint {
-        CGPoint(x: xOffset + boardPoint.x * scale, y: yOffset + boardPoint.y * scale)
+        CGPoint(
+            x: xOffset + (boardPoint.x - cameraOffset.x) * scale,
+            y: yOffset + (boardPoint.y - cameraOffset.y) * scale
+        )
     }
 }
 
@@ -1099,6 +1141,8 @@ private struct UnitPlacement {
 private struct StageDefinition {
     let title: String
 
+    var mapWidth: CGFloat = 390
+    var mapHeight: CGFloat = 520
     var playerBasePosition: CGPoint = CGPoint(x: 72, y: 72)
     var campPosition: CGPoint? = nil
     var mineralBasePosition: CGPoint = CGPoint(x: 278, y: 130)
@@ -1125,6 +1169,8 @@ private struct StageDefinition {
 
     init(
         title: String,
+        mapWidth: CGFloat = 390,
+        mapHeight: CGFloat = 520,
         playerBasePosition: CGPoint = CGPoint(x: 72, y: 72),
         campPosition: CGPoint? = nil,
         mineralBasePosition: CGPoint = CGPoint(x: 278, y: 130),
@@ -1147,6 +1193,8 @@ private struct StageDefinition {
         enemyUnitPlacements: [UnitPlacement]? = nil
     ) {
         self.title = title
+        self.mapWidth = mapWidth
+        self.mapHeight = mapHeight
         self.playerBasePosition = playerBasePosition
         self.campPosition = campPosition
         self.mineralBasePosition = mineralBasePosition
