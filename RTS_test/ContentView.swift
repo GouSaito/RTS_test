@@ -322,9 +322,6 @@ struct ContentView: View {
 
             Label(currentStage.title, systemImage: "flag.checkered")
             Label("Minerals: \(minerals)", systemImage: "diamond.fill")
-            Label("Base: \(baseHealth)", systemImage: "shield.fill")
-            Label("Enemy: \(max(enemyBaseHealth, 0))", systemImage: "flame.fill")
-            Label("Raiders: \(enemyUnits.count)", systemImage: "person.2.fill")
         }
         .font(.system(size: 13, weight: .semibold, design: .rounded))
         .foregroundStyle(.white)
