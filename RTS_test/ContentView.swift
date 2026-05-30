@@ -63,16 +63,16 @@ struct ContentView: View {
         ),
         StageDefinition(
             title: "Stage 4：キャンプの理解",
-            campPosition: CGPoint(x: 60, y: 260),
+            campPosition: CGPoint(x: 250, y: 260),
             initialMinerals: 40,
-            initialEnemyCount: 1,
-            enemySpawnIntervalTicks: 40
+            enemySpawnIntervalTicks: 160
         ),
         StageDefinition(
             title: "Stage 5：鉱山の理解",
             oreCount: 1,
             initialWorkerCount: 1,
-            enemySpawnIntervalTicks: 40
+            initialSwordCount: 1,
+            enemySpawnIntervalTicks: 200
         ),
         StageDefinition(
             title: "Stage 6：弓兵の理解",
