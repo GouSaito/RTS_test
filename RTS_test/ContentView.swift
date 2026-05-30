@@ -498,6 +498,13 @@ struct ContentView: View {
             .disabled(gameStatus != .playing || (selectedUnitIDs.isEmpty && selectedProductionSite == nil))
 
             Spacer()
+
+            Button {
+                resetStage()
+            } label: {
+                Label("Retry", systemImage: "arrow.clockwise")
+            }
+            .disabled(gameStatus != .playing)
         }
         .font(.system(size: 12, weight: .semibold))
         .buttonStyle(.borderedProminent)
