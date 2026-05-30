@@ -27,6 +27,7 @@ struct ContentView: View {
             title: "Stage test：テスト",
             mapWidth: 780,
             mapHeight: 1040,
+            isNight: true,
             playerBasePosition: CGPoint(x: 100, y: 150),
             campPosition: CGPoint(x: 100, y: 400),
             mineralBasePosition: CGPoint(x: 300, y: 900),
@@ -354,6 +355,12 @@ struct ContentView: View {
                     ))
 
                 gameObjects(scale: scale, xOffset: xOffset, yOffset: yOffset, viewSize: proxy.size)
+
+                if currentStage.isNight {
+                    nightOverlay(scale: scale, xOffset: xOffset, yOffset: yOffset)
+                        .frame(width: proxy.size.width, height: proxy.size.height)
+                        .allowsHitTesting(false)
+                }
             }
             .clipped()
             .contentShape(Rectangle())
@@ -1131,6 +1138,52 @@ struct ContentView: View {
             y: yOffset + (boardPoint.y - cameraOffset.y) * scale
         )
     }
+
+    private func nightOverlay(scale: CGFloat, xOffset: CGFloat, yOffset: CGFloat) -> some View {
+        Canvas { context, size in
+            context.fill(
+                Path(CGRect(origin: .zero, size: size)),
+                with: .color(.black.opacity(0.88))
+            )
+
+            context.blendMode = .destinationOut
+            let gradient = Gradient(colors: [.white, .white.opacity(0.6), .clear])
+
+            let baseScreen = screenPoint(playerBasePosition, scale: scale, xOffset: xOffset, yOffset: yOffset)
+            let baseRadius: CGFloat = 90 * scale
+            context.fill(
+                Path(ellipseIn: CGRect(
+                    x: baseScreen.x - baseRadius, y: baseScreen.y - baseRadius,
+                    width: baseRadius * 2, height: baseRadius * 2
+                )),
+                with: .radialGradient(gradient, center: baseScreen, startRadius: 0, endRadius: baseRadius)
+            )
+
+            if let campPos = campPosition {
+                let campScreen = screenPoint(campPos, scale: scale, xOffset: xOffset, yOffset: yOffset)
+                let campRadius: CGFloat = 75 * scale
+                context.fill(
+                    Path(ellipseIn: CGRect(
+                        x: campScreen.x - campRadius, y: campScreen.y - campRadius,
+                        width: campRadius * 2, height: campRadius * 2
+                    )),
+                    with: .radialGradient(gradient, center: campScreen, startRadius: 0, endRadius: campRadius)
+                )
+            }
+
+            for unit in units {
+                let unitScreen = screenPoint(unit.position, scale: scale, xOffset: xOffset, yOffset: yOffset)
+                let unitRadius: CGFloat = 60 * scale
+                context.fill(
+                    Path(ellipseIn: CGRect(
+                        x: unitScreen.x - unitRadius, y: unitScreen.y - unitRadius,
+                        width: unitRadius * 2, height: unitRadius * 2
+                    )),
+                    with: .radialGradient(gradient, center: unitScreen, startRadius: 0, endRadius: unitRadius)
+                )
+            }
+        }
+    }
 }
 
 private struct UnitPlacement {
@@ -1143,6 +1196,7 @@ private struct StageDefinition {
 
     var mapWidth: CGFloat = 390
     var mapHeight: CGFloat = 520
+    var isNight: Bool = false
     var playerBasePosition: CGPoint = CGPoint(x: 72, y: 72)
     var campPosition: CGPoint? = nil
     var mineralBasePosition: CGPoint = CGPoint(x: 278, y: 130)
@@ -1171,6 +1225,7 @@ private struct StageDefinition {
         title: String,
         mapWidth: CGFloat = 390,
         mapHeight: CGFloat = 520,
+        isNight: Bool = false,
         playerBasePosition: CGPoint = CGPoint(x: 72, y: 72),
         campPosition: CGPoint? = nil,
         mineralBasePosition: CGPoint = CGPoint(x: 278, y: 130),
@@ -1195,6 +1250,7 @@ private struct StageDefinition {
         self.title = title
         self.mapWidth = mapWidth
         self.mapHeight = mapHeight
+        self.isNight = isNight
         self.playerBasePosition = playerBasePosition
         self.campPosition = campPosition
         self.mineralBasePosition = mineralBasePosition
