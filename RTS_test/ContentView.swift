@@ -622,6 +622,7 @@ struct ContentView: View {
                 trainButton(kind: .bow, cost: 45)
                 trainButton(kind: .shield, cost: 30)
                 trainButton(kind: .cure, cost: 40)
+                trainButton(kind: .scout, cost: 30)
             }
         }
         .padding(8)
@@ -1202,7 +1203,7 @@ struct ContentView: View {
 
             for unit in units {
                 let unitScreen = screenPoint(unit.position, scale: scale, xOffset: xOffset, yOffset: yOffset)
-                let unitRadius: CGFloat = 60 * scale
+                let unitRadius: CGFloat = unit.kind.nightVisionRadius * scale
                 context.fill(
                     Path(ellipseIn: CGRect(
                         x: unitScreen.x - unitRadius, y: unitScreen.y - unitRadius,
@@ -1248,6 +1249,7 @@ private struct StageDefinition {
     var initialBowCount: Int = 0
     var initialShieldCount: Int = 0
     var initialCureCount: Int = 0
+    var initialScoutCount: Int = 0
     var initialEnemyCount: Int = 0
 
     init(
@@ -1269,6 +1271,7 @@ private struct StageDefinition {
         initialBowCount: Int = 0,
         initialShieldCount: Int = 0,
         initialCureCount: Int = 0,
+        initialScoutCount: Int = 0,
         enemyBaseHealth: Int = 100,
         initialEnemyCount: Int = 0,
         enemySpawnIntervalTicks: Int = 99999,
@@ -1403,6 +1406,7 @@ private enum UnitKind {
     case bow
     case shield
     case cure
+    case scout
 
     var displayName: String {
         switch self {
@@ -1413,6 +1417,7 @@ private enum UnitKind {
         case .bow: return "Bow"
         case .shield: return "Shield"
         case .cure: return "Cure"
+        case .scout: return "Scout"
         }
     }
 
@@ -1425,6 +1430,7 @@ private enum UnitKind {
         case .bow: return .yellow
         case .shield: return .gray
         case .cure: return .pink
+        case .scout: return .teal
         }
     }
 
@@ -1437,6 +1443,7 @@ private enum UnitKind {
         case .bow: return "scope"
         case .shield: return "shield.fill"
         case .cure: return "heart.fill"
+        case .scout: return "eye.fill"
         }
     }
 
@@ -1449,6 +1456,7 @@ private enum UnitKind {
         case .bow: return 2.6
         case .shield: return 1.8
         case .cure: return 2.2
+        case .scout: return 3.5
         }
     }
 
@@ -1461,6 +1469,7 @@ private enum UnitKind {
         case .bow: return 18
         case .shield: return 200
         case .cure: return 20
+        case .scout: return 14
         }
     }
 
@@ -1473,6 +1482,7 @@ private enum UnitKind {
         case .bow: return 2
         case .shield: return 0
         case .cure: return 0
+        case .scout: return 1
         }
     }
 
@@ -1480,6 +1490,13 @@ private enum UnitKind {
         switch self {
         case .bow: return 120.0
         default: return 42.0
+        }
+    }
+
+    var nightVisionRadius: CGFloat {
+        switch self {
+        case .scout: return 120
+        default: return 60
         }
     }
 }
