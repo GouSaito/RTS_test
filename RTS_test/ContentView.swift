@@ -668,13 +668,9 @@ struct ContentView: View {
         let isSelected = selectedUnitIDs.contains(unit.id)
 
         return ZStack {
-            Circle()
-                .stroke(isSelected ? Color.yellow : Color.clear, lineWidth: 4)
-                .frame(width: 38, height: 38)
+            unitTriangle(size: 36, color: isSelected ? .yellow : .clear, lineWidth: 4)
 
-            Circle()
-                .fill(unit.kind.color)
-                .frame(width: 28, height: 28)
+            unitTriangle(size: 26, color: unit.kind.color)
                 .shadow(radius: 3, y: 2)
 
             Image(systemName: unit.kind.systemImage)
@@ -684,17 +680,14 @@ struct ContentView: View {
             unitHealthBar(unit, tint: unit.kind.color)
                 .offset(y: 24)
         }
+        .rotationEffect(.radians(unit.facing - .pi / 2))
     }
 
     private func enemyUnitView(_ unit: RTSUnit) -> some View {
         ZStack {
-            Circle()
-                .stroke(Color.red.opacity(0.45), lineWidth: 3)
-                .frame(width: 36, height: 36)
+            unitTriangle(size: 34, color: Color.red.opacity(0.45), lineWidth: 3)
 
-            Circle()
-                .fill(Color.red)
-                .frame(width: 26, height: 26)
+            unitTriangle(size: 24, color: .red)
                 .shadow(radius: 3, y: 2)
 
             Image(systemName: unit.kind.systemImage)
@@ -704,6 +697,25 @@ struct ContentView: View {
             unitHealthBar(unit, tint: .red)
                 .offset(y: 23)
         }
+        .rotationEffect(.radians(unit.facing - .pi / 2))
+    }
+
+    private func unitTriangle(size: CGFloat, color: Color, lineWidth: CGFloat? = nil) -> some View {
+        let path = Path { path in
+            path.move(to: CGPoint(x: size / 2, y: 0))
+            path.addLine(to: CGPoint(x: size, y: size * 0.8))
+            path.addLine(to: CGPoint(x: 0, y: size * 0.8))
+            path.closeSubpath()
+        }
+
+        return Group {
+            if let lineWidth {
+                path.stroke(color, lineWidth: lineWidth)
+            } else {
+                path.fill(color)
+            }
+        }
+        .frame(width: size, height: size * 0.8)
     }
 
     private func unitHealthBar(_ unit: RTSUnit, tint: Color) -> some View {
@@ -910,12 +922,12 @@ struct ContentView: View {
         }
     }
 
-    private func calculateDamage(attacker: UnitKind, defender: UnitKind) -> Int {
-        let baseDamage = attacker.attackDamage
+    private func calculateDamage(attacker: RTSUnit, defender: RTSUnit) -> Int {
+        let baseDamage = attacker.kind.attackDamage
         guard baseDamage > 0 else { return 0 }
 
         var multiplier: Double = 1.0
-        switch (attacker, defender) {
+        switch (attacker.kind, defender.kind) {
         case (.sword, .axe):
             multiplier = 1.5
         case (.spear, .sword):
@@ -926,7 +938,25 @@ struct ContentView: View {
             break
         }
 
-        return Int(Double(baseDamage) * multiplier)
+        multiplier *= facingMultiplier(attacker: attacker, targetPosition: defender.position)
+
+        return max(Int(Double(baseDamage) * multiplier), 1)
+    }
+
+    private func facingMultiplier(attacker: RTSUnit, targetPosition: CGPoint) -> Double {
+        let angleToTarget = atan2(
+            targetPosition.y - attacker.position.y,
+            targetPosition.x - attacker.position.x
+        )
+        var diff = angleToTarget - attacker.facing
+        diff = atan2(sin(diff), cos(diff))
+        let absDiff = abs(diff)
+
+        if absDiff <= .pi / 2 {
+            return 1.0
+        } else {
+            return 0.5
+        }
     }
 
     private func resolveCombat() {
@@ -952,7 +982,7 @@ struct ContentView: View {
             let attackRange = unit.kind.attackRange
             if let targetIndex = nearestUnitIndex(to: unit.position, in: enemyUnits),
                unit.position.distance(to: enemyUnits[targetIndex].position) < attackRange {
-                let damage = calculateDamage(attacker: unit.kind, defender: enemyUnits[targetIndex].kind)
+                let damage = calculateDamage(attacker: unit, defender: enemyUnits[targetIndex])
                 enemyDamage[targetIndex] += damage
             } else if unit.position.distance(to: enemyBasePosition) < 52, enemyBaseHealth > 0 {
                 enemyBaseHealth -= unit.kind.attackDamage
@@ -971,7 +1001,7 @@ struct ContentView: View {
             let attackRange = unit.kind.attackRange
             if let targetIndex = nearestUnitIndex(to: unit.position, in: units),
                unit.position.distance(to: units[targetIndex].position) < attackRange {
-                let damage = calculateDamage(attacker: unit.kind, defender: units[targetIndex].kind)
+                let damage = calculateDamage(attacker: unit, defender: units[targetIndex])
                 playerDamage[targetIndex] += damage
             } else if unit.position.distance(to: playerBasePosition) < 52, baseHealth > 0 {
                 baseHealth -= enemyUnits[index].kind.attackDamage
@@ -1036,6 +1066,7 @@ struct ContentView: View {
         let dy = (target.y - position.y) / distance * step
         unit.position.x += dx
         unit.position.y += dy
+        unit.facing = atan2(dy, dx)
     }
 
     private func nearestUnitIndex(to position: CGPoint, in targetUnits: [RTSUnit]) -> Int? {
@@ -1218,12 +1249,16 @@ private struct RTSUnit: Identifiable {
     var target: CGPoint
     var health: Int
     var carryTicks = 0
+    var facing: CGFloat = .pi / 2
 
     init(kind: UnitKind, position: CGPoint, target: CGPoint? = nil) {
         self.kind = kind
         self.position = position
         self.target = target ?? position
         self.health = kind.maxHealth
+        if let target {
+            self.facing = atan2(target.y - position.y, target.x - position.x)
+        }
     }
 }
 
