@@ -470,12 +470,25 @@ struct ContentView: View {
                         scale: scale, xOffset: xOffset, yOffset: yOffset
                     ))
 
-                gameObjects(scale: scale, xOffset: xOffset, yOffset: yOffset, viewSize: proxy.size)
+                gameObjects(scale: scale, xOffset: xOffset, yOffset: yOffset)
 
                 if currentStage.isNight {
                     nightOverlay(scale: scale, xOffset: xOffset, yOffset: yOffset)
                         .frame(width: proxy.size.width, height: proxy.size.height)
                         .allowsHitTesting(false)
+                }
+
+                if let productionPosition = selectedProductionPosition {
+                    productionMenu
+                        .position(
+                            productionMenuScreenPosition(
+                                for: productionPosition,
+                                scale: scale,
+                                xOffset: xOffset,
+                                yOffset: yOffset,
+                                viewSize: proxy.size
+                            )
+                        )
                 }
             }
             .clipped()
@@ -559,7 +572,7 @@ struct ContentView: View {
         .stroke(Color.white.opacity(0.1), lineWidth: 1)
     }
 
-    private func gameObjects(scale: CGFloat, xOffset: CGFloat, yOffset: CGFloat, viewSize: CGSize) -> some View {
+    private func gameObjects(scale: CGFloat, xOffset: CGFloat, yOffset: CGFloat) -> some View {
         ZStack {
             structure(
                 title: "HQ",
@@ -610,18 +623,6 @@ struct ContentView: View {
                     }
             }
 
-            if let productionPosition = selectedProductionPosition {
-                productionMenu
-                    .position(
-                        productionMenuScreenPosition(
-                            for: productionPosition,
-                            scale: scale,
-                            xOffset: xOffset,
-                            yOffset: yOffset,
-                            viewSize: viewSize
-                        )
-                    )
-            }
         }
     }
 
