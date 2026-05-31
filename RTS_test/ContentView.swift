@@ -190,6 +190,93 @@ struct ContentView: View {
             enemySpawnIntervalTicks: 180
         ),
         StageDefinition(
+            title: "Stage：偵察と夜襲",
+            isNight: true,
+            campPosition: CGPoint(x: 200, y: 300),
+            oreCount: 1,
+            initialMinerals: 60,
+            playerBaseHealth: 100,
+            initialWorkerCount: 1,
+            initialSwordCount: 1,
+            initialBowCount: 1,
+            initialScoutCount: 2,
+            enemyBaseHealth: 120,
+            initialEnemyCount: 2,
+            enemySpawnIntervalTicks: 250
+        ),
+        StageDefinition(
+            title: "Stage：大軍勢の防衛線",
+            campPosition: CGPoint(x: 190, y: 240),
+            oreCount: 2,
+            initialMinerals: 40,
+            playerBaseHealth: 130,
+            initialWorkerCount: 1,
+            initialBowCount: 1,
+            initialShieldCount: 2,
+            initialCureCount: 1,
+            enemyBaseHealth: 100,
+            initialEnemyCount: 3,
+            enemySpawnIntervalTicks: 80,
+            enemySpawnPool: [.sword, .axe, .spear]
+        ),
+        StageDefinition(
+            title: "Stage：資源枯渇の持久戦",
+            oreCount: 1,
+            initialMinerals: 15,
+            playerBaseHealth: 80,
+            initialWorkerCount: 1,
+            initialSwordCount: 1,
+            initialSpearCount: 1,
+            enemyBaseHealth: 150,
+            initialEnemyCount: 2,
+            enemySpawnIntervalTicks: 280,
+            enemySpawnPool: [.axe, .sword]
+        ),
+        StageDefinition(
+            title: "Stage：渓谷の奇襲戦",
+            mapWidth: 520,
+            mapHeight: 700,
+            playerBasePosition: CGPoint(x: 80, y: 100),
+            campPosition: CGPoint(x: 260, y: 350),
+            mineralBasePosition: CGPoint(x: 140, y: 250),
+            enemyBasePosition: CGPoint(x: 420, y: 580),
+            oreCount: 2,
+            initialMinerals: 70,
+            playerBaseHealth: 110,
+            initialWorkerCount: 1,
+            initialSwordCount: 1,
+            initialSpearCount: 1,
+            initialAxeCount: 1,
+            initialBowCount: 1,
+            enemyBaseHealth: 180,
+            initialEnemyCount: 5,
+            enemySpawnIntervalTicks: 160,
+            enemySpawnPool: [.spear, .bow, .axe]
+        ),
+        StageDefinition(
+            title: "Stage：全兵種統合の決戦",
+            mapWidth: 600,
+            mapHeight: 800,
+            isNight: true,
+            playerBasePosition: CGPoint(x: 90, y: 120),
+            campPosition: CGPoint(x: 300, y: 300),
+            mineralBasePosition: CGPoint(x: 200, y: 700),
+            enemyBasePosition: CGPoint(x: 480, y: 660),
+            oreCount: 3,
+            initialMinerals: 100,
+            playerBaseHealth: 120,
+            initialWorkerCount: 2,
+            initialSwordCount: 1,
+            initialSpearCount: 1,
+            initialBowCount: 1,
+            initialShieldCount: 1,
+            initialScoutCount: 1,
+            enemyBaseHealth: 220,
+            initialEnemyCount: 6,
+            enemySpawnIntervalTicks: 120,
+            enemySpawnPool: [.sword, .spear, .axe, .bow]
+        ),
+        StageDefinition(
             title: "Final Stage：城砦攻略の総力戦（テスト中）",
             campPosition: CGPoint(x: 168, y: 78),
             oreCount: 3,
@@ -1373,6 +1460,7 @@ private struct StageDefinition {
         spawnUnits(kind: .axe, count: initialAxeCount, yOffsetBase: 180)
         spawnUnits(kind: .bow, count: initialBowCount, yOffsetBase: 180)
         spawnUnits(kind: .cure, count: initialCureCount, yOffsetBase: 180)
+        spawnUnits(kind: .scout, count: initialScoutCount, yOffsetBase: 180)
 
         return playerUnits
     }
